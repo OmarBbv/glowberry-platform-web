@@ -1,4 +1,5 @@
 import { axiosInstancePrivate } from "@/utils/axios";
+import axios from "axios";
 
 interface WishListServiceType {
     addWishlist: (productId: string) => Promise<any>;
@@ -12,7 +13,11 @@ class WishListService implements WishListServiceType {
             const res = await axiosInstancePrivate.post(`/wishlist/add-or-remove/${productId}`);
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -21,7 +26,11 @@ class WishListService implements WishListServiceType {
             const res = await axiosInstancePrivate.get(`/wishlist`);
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
     async deleteAllWishlist(): Promise<void> {
@@ -29,7 +38,11 @@ class WishListService implements WishListServiceType {
             const res = await axiosInstancePrivate.delete('/wishlist');
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 }

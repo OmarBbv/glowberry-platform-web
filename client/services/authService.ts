@@ -1,4 +1,5 @@
 import { axiosInstancePrivate, axiosInstancePublic } from "@/utils/axios";
+import axios from "axios";
 
 interface UserVerifyResponse {
     message: string;
@@ -38,7 +39,11 @@ class AuthService implements AuthServiceType {
             const res = await axiosInstancePublic.post(`/auth/end-otp/${roleName}`, { phoneNumber: data.phoneNumber });
             return { message: res.data.message };
         } catch (error: any) {
-            throw new Error(error.response?.data?.message || error.message);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -51,7 +56,11 @@ class AuthService implements AuthServiceType {
             });
             return res.data;
         } catch (error: any) {
-            throw new Error(error.response?.data?.message || error.message);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -60,7 +69,11 @@ class AuthService implements AuthServiceType {
             const res = await axiosInstancePrivate.post('/auth/logout');
             return res.data;
         } catch (error: any) {
-            throw new Error(error.response?.data?.message || error.message);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 import { axiosInstancePrivate } from "@/utils/axios";
+import axios from "axios";
 
 export interface ISellerUpdateDto {
     companyName: string;
@@ -17,7 +18,11 @@ class SellerService implements ISellerService {
             console.log(res.data);
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 }

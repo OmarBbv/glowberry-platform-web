@@ -1,4 +1,5 @@
 import { axiosInstancePrivate, axiosInstancePublic } from "@/utils/axios";
+import axios from "axios";
 
 interface ProductServiceType {
     getAllProduct(pageParams: number, search?: string): Promise<IApiAllProductResponse>;
@@ -24,7 +25,11 @@ class ProductService implements ProductServiceType {
             const res = await axiosInstancePublic.get('/products', { params });
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -63,7 +68,11 @@ class ProductService implements ProductServiceType {
             const res = await axiosInstancePublic.get('/products', { params });
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -101,7 +110,11 @@ class ProductService implements ProductServiceType {
             });
             return res.data
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -110,7 +123,11 @@ class ProductService implements ProductServiceType {
             const res = await axiosInstancePublic.get(`/products/${id}`);
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -119,7 +136,11 @@ class ProductService implements ProductServiceType {
             const res = await axiosInstancePublic.get(`/comments/${id}`);
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -129,7 +150,11 @@ class ProductService implements ProductServiceType {
             console.log('seller product: ', res.data);
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -149,7 +174,11 @@ class ProductService implements ProductServiceType {
             const res = await axiosInstancePrivate.post('/comments', formData);
             return res.data;
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -158,7 +187,11 @@ class ProductService implements ProductServiceType {
             const res = await axiosInstancePrivate.post(`/wishlist/add-or-remove/${productId}`);
             return res.data
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -169,7 +202,11 @@ class ProductService implements ProductServiceType {
 
             return res.data
         } catch (error: any) {
-            throw new Error(error.message || error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 
@@ -181,7 +218,11 @@ class ProductService implements ProductServiceType {
 
             return res.data;
         } catch (error: any) {
-            throw new Error(error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
         }
     }
 }
