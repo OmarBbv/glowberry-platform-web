@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+@import 'swiper/css';
+@import 'swiper/css/navigation';
+@import 'swiper/css/pagination';
+@import 'swiper/css/scrollbar';
+@import 'swiper/css/free-mode';
+@import 'swiper/css/thumbs';
+@import 'swiper/css/zoom';
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --purple-custom: #db31d3;
+  --violet-light-custom: #ba20e3;
+  --violet-custom: #810bf7;
+  --purple-fairy: #f1dfff;
+  --black-custom: #242424;
+  --gray-custom: #f6f6f9;
+  --red-custom: #ff4444;
+}
+
+@theme {
+  --color-purple-custom: var(--purple-custom);
+  --color-violet-custom: var(--violet-custom);
+  --color-violet-light-custom: var(--violet-light-custom);
+  --color-purple-fairy: var(--purple-fairy);
+  --color-black-custom: var(--black-custom);
+  --color-gray-custom: var(--gray-custom);
+  --color-red-custom: var(--red-custom);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+swiper-zoom-container {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: fit-content;
+  display: flex;
+}
+
+/* custom scroll */
+#custom-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+#custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #c4c4c4;
+  border-radius: 8px;
+}
+
+#custom-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #a9a9a9;
+}
+
+/* hide scroll */
+#scroll-container {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE 10+ */
+}
+
+#scroll-container::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
