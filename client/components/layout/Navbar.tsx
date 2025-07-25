@@ -8,13 +8,12 @@ import { useDispatch } from 'react-redux';
 import { Search } from '../sections/Search';
 import { Icon } from '../ui/Icon';
 import { usePathname, useRouter } from 'next/navigation';
-import { getLocation } from '@/utils/getLocation';
-import { reverseGeocode } from '@/services/locationService';
 import React, { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { authService } from '@/services/authService';
 import { ProtectedRoute } from '../auth/ProtectedRoute';
-import { useLocation } from '@/hooks/useLocation';
+import { fetchAndSetLocation } from '@/utils/fetchAndSetLocation';
+import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
 
 interface User {
   id: string;
@@ -32,13 +31,13 @@ interface UserDataTokenType {
 export default function Navbar() {
   const dispatch = useDispatch();
   const [localData, setLocalData] = useState<UserDataTokenType | null>(null);
+  const [location, setLocation] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const storageData = useLocalStorageAll();
 
   const pathname = usePathname();
   let path = pathname === '/';
-
-  console.log(path);
 
   const handleRouterStore = (href: string) => {
     router.push(href);
@@ -59,6 +58,12 @@ export default function Navbar() {
 
   const handleLoginModalOpen = () => dispatch(handleLoginOpen());
   const handleRouterWish = () => router.push('/secilmisler');
+
+  useEffect(() => {
+    if (storageData.location) {
+      setLocation(storageData.location);
+    }
+  }, [storageData.location]);
 
   useEffect(() => {
     const local = localStorage.getItem('data');
@@ -82,7 +87,7 @@ export default function Navbar() {
       } w-full z-[999]`}
     >
       <div className="max-w-[1440px] mx-auto ">
-        <TopBar />
+        <TopBar location={location} />
         <div className="flex items-center gap-4 flex-1">
           <div className="hidden lg:flex items-center gap-2">
             <h1 className="text-[40px] text-white font-semibold">
@@ -94,7 +99,7 @@ export default function Navbar() {
           </div>
           <Search />
           <button
-            onClick={() => useLocation()}
+            onClick={() => fetchAndSetLocation(setLocation)}
             className="flex flex-col cursor-pointer gap-1 items-center"
           >
             <Icon name="location" size={25} color="#fff" />

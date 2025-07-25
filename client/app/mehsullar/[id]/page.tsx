@@ -25,10 +25,13 @@ import { wishlistService } from '@/services/wishlistService';
 import { ShareButton } from '@/components/ui/ShareButton';
 import { SmilarProduct } from '@/components/sections/SmilerProduct';
 import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
+import { useScrollWidth } from '@/hooks/useScrollWidth';
 
 export default function page() {
   const { id } = useParams();
   if (!id) return null;
+
+  const scroll = useScrollWidth();
 
   const productId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
@@ -172,19 +175,22 @@ export default function page() {
             <div className="hidden sm:block max-h-[400px] lg:max-h-[600px] w-full sm:w-[80px] lg:w-[112px]">
               <Swiper
                 onSwiper={setThumbsSwiper}
-                spaceBetween={4}
-                slidesPerView={6}
+                spaceBetween={8}
+                slidesPerView="auto"
                 freeMode={true}
                 watchSlidesProgress={true}
-                modules={[FreeMode, Navigation, Thumbs]}
                 direction="vertical"
+                modules={[FreeMode, Navigation, Thumbs]}
                 className="h-full"
               >
                 {product?.images.map((image, index) => (
-                  <SwiperSlide key={index} className="cursor-pointer p-2">
+                  <SwiperSlide
+                    key={index}
+                    className="cursor-pointer flex justify-center items-center !h-[72px] p-2"
+                  >
                     <div
                       onClick={() => handleThumbClick(index)}
-                      className={`relative w-full aspect-square rounded-md ${
+                      className={`relative w-[64px] aspect-square rounded-md ${
                         activeIndex === index ? 'ring-2 ring-blue-500' : ''
                       }`}
                     >
@@ -363,10 +369,11 @@ export default function page() {
               </div>
 
               <Button
-                onClick={() => (
-                  setIsSpecificationOpen(true),
-                  (document.body.style.overflow = 'hidden')
-                )}
+                onClick={() => {
+                  document.body.style.paddingRight = `${scroll}px`;
+                  document.body.style.overflow = 'hidden';
+                  setIsSpecificationOpen(true);
+                }}
                 variant="secondary"
                 className="hidden text-xs font-medium tracking-wider cursor-pointer lg:block mt-4 w-full sm:w-auto text-gray-900 bg-gray-200 hover:bg-gray-300 rounded-lg py-3 px-4 transition-colors"
               >

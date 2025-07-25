@@ -6,12 +6,13 @@ interface ProductServiceType {
     getAdvancedProducts(filters: SearchFilters): Promise<IApiAllProductResponse>;
     handleCreateProduct(data: ICreateProduct): Promise<any>;
     getProductById(id: string): Promise<IProduct>;
-    getProductByIdComment(id: string): Promise<ProductCommentResponse>
+    getProductByIdComment(id: string, page?: number): Promise<ProductCommentResponse>
     getProductsBySeller(): Promise<IApiSellerProductResponse>
     createComment(payload: ICreateComment): Promise<IApiCommentResponse>
     addWishlist: (productId: string) => Promise<any>;
     getSimilarProductsBySeller: (id: string, page?: number) => Promise<ApiSmilarProductResponse>
     getSimilarProducts: (id: string, page: number, limit: number) => Promise<ApiResponseSmilarProduct>
+    getProductSearch: (query: string) => Promise<IApiSearchProduct>;
 }
 
 class ProductService implements ProductServiceType {
@@ -131,9 +132,11 @@ class ProductService implements ProductServiceType {
         }
     }
 
-    async getProductByIdComment(id: string): Promise<ProductCommentResponse> {
+    async getProductByIdComment(id: string, page?: number): Promise<ProductCommentResponse> {
         try {
-            const res = await axiosInstancePublic.get(`/comments/${id}`);
+            const res = await axiosInstancePublic.get(`/comments/${id}`, {
+                params: { page, limit: 10 }
+            });
             return res.data;
         } catch (error: any) {
             if (axios.isAxiosError(error)) {
@@ -217,6 +220,19 @@ class ProductService implements ProductServiceType {
             });
 
             return res.data;
+        } catch (error: any) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || error.message);
+            } else {
+                throw new Error('Bilinmeyen bir hata oluştu.');
+            }
+        }
+    }
+
+    async getProductSearch(query: string): Promise<IApiSearchProduct> {
+        try {
+            const res = await axiosInstancePublic.get('/products/search', { params: { q: query } })
+            return res.data
         } catch (error: any) {
             if (axios.isAxiosError(error)) {
                 throw new Error(error.response?.data?.message || error.message);

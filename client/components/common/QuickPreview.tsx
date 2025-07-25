@@ -12,12 +12,6 @@ import chechkIcon from '@/public/icons/BadgeCheck.svg';
 import { close } from '@/stores/slices/globalToggleSlice';
 import { RootState } from '@/stores/store';
 
-// Swiper styles
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/pagination';
-import 'swiper/css/zoom';
-import 'swiper/css/thumbs';
 import { useQuery } from '@tanstack/react-query';
 import { productService } from '@/services/productService';
 import { useRouter } from 'next/navigation';
@@ -44,13 +38,15 @@ export const QuickPreview = ({ product }: Props) => {
 
   const handleClose = () => {
     dispatch(close());
+    document.body.style.paddingRight = '';
     document.body.style.overflow = 'visible';
   };
 
   const handleRouterForProduct = () => {
     if (!product.id) return;
-    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
     router.push(`/mehsullar/${product.id}`);
+    document.body.style.overflow = '';
   };
 
   return (
@@ -66,7 +62,6 @@ export const QuickPreview = ({ product }: Props) => {
           isOpen ? 'flex' : 'hidden'
         }`}
       >
-        {/* images */}
         <div className="w-1/2 relative">
           <Swiper
             modules={[Navigation, Pagination, Zoom, Thumbs]}

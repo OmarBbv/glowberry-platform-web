@@ -19,7 +19,11 @@ export default function SpecificationsAndDescription({
         className={`fixed inset-0 h-screen bg-black/30 z-[999] transition-opacity duration-200 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
-        onClick={() => (setIsOpen(false), (document.body.style.overflow = ''))}
+        onClick={() => {
+          setIsOpen(false);
+          document.body.style.overflow = '';
+          document.body.style.paddingRight = '';
+        }}
       />
 
       {/* Sidebar */}
@@ -35,9 +39,11 @@ export default function SpecificationsAndDescription({
             Характеристики и описание
           </h2>
           <button
-            onClick={() => (
-              setIsOpen(false), (document.body.style.overflow = '')
-            )}
+            onClick={() => {
+              setIsOpen(false);
+              document.body.style.overflow = '';
+              document.body.style.paddingRight = '';
+            }}
             className="text-gray-400 p-1 hover:text-gray-600 hover:bg-gray-200 text-2xl w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer"
           >
             <Icon name="x" size={14} />

@@ -1,30 +1,62 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Search as SearchIcon,
-  X,
-  Clock,
-  TrendingUp,
-  Filter,
-} from 'lucide-react';
+import { Search as SearchIcon, X, TrendingUp } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { productService } from '@/services/productService';
+import { useForm } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
+
+type FormValues = {
+  inputValue: string;
+};
 
 export const Search = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
   const [isMobile, setIsMobile] = useState(false);
-  const searchRef = useRef(null);
-  const inputRef = useRef(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const searchRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const router = useRouter();
 
-  // Mock data - gerçek uygulamada API'den gelecek
-  const recentSearches = ['minecraft', '300762192', '17386353'];
-  const popularSearches = [
-    'футболка женская',
-    'купальник женский раздельный',
-    'футболка мужская',
-    'платье женское летнее',
-    'лабубу',
-    'босоножки женские летние',
-    'трусы женские',
-  ];
+  const { register, handleSubmit, watch, reset } = useForm<FormValues>({
+    defaultValues: {
+      inputValue: '',
+    },
+  });
+
+  const inputValue = watch('inputValue');
+
+  const { data, refetch, isFetching } = useQuery({
+    queryKey: ['/get/search/products', inputValue],
+    queryFn: () => productService.getProductSearch(inputValue),
+    enabled: false,
+  });
+
+  const searchProduct = data?.data;
+
+  const onSubmit = (data: FormValues) => {
+    setIsOpen(false);
+    console.log('Search submitted:', data.inputValue);
+  };
+
+  const handleClearSearch = () => {
+    reset();
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  const handleSearchClick = () => {
+    setIsOpen(true);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  const handleSearchSubmit = (productId: string) => {
+    setIsOpen(false);
+    reset();
+    router.push(`/mehsullar/${productId}`);
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -38,6 +70,22 @@ export const Search = () => {
   }, []);
 
   useEffect(() => {
+    if (!inputValue || inputValue.trim() === '') {
+      setIsTyping(false);
+      return;
+    }
+
+    setIsTyping(true);
+
+    const handler = setTimeout(() => {
+      setIsTyping(false);
+      refetch();
+    }, 2000);
+
+    return () => clearTimeout(handler);
+  }, [inputValue, refetch]);
+
+  useEffect(() => {
     const handleClickOutside = (event: any) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -48,32 +96,6 @@ export const Search = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearchClick = () => {
-    setIsOpen(true);
-    if (inputRef.current) {
-      inputRef?.current?.focus();
-    }
-  };
-
-  const handleClearSearch = () => {
-    setSearchValue('');
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
-
-  const removeRecentSearch = (searchTerm: any) => {
-    // Mock function - gerçek uygulamada API call yapılacak
-    console.log('Removing recent search:', searchTerm);
-  };
-
-  const handleSearchSubmit = (term: any) => {
-    setSearchValue(term);
-    setIsOpen(false);
-    // SearchIcon API call burada yapılacak
-    console.log('Searching for:', term);
-  };
-
   if (isMobile && isOpen) {
     return (
       <div className="fixed inset-0 bg-white z-50 flex flex-col">
@@ -82,78 +104,78 @@ export const Search = () => {
           <button onClick={() => setIsOpen(false)} className="mr-3 p-1">
             <X className="w-6 h-6 text-gray-600" />
           </button>
-          <div className="flex-1 relative">
+          <form className="flex-1 relative" onSubmit={handleSubmit(onSubmit)}>
             <input
-              ref={inputRef}
+              {...register('inputValue')}
+              ref={(e) => {
+                register('inputValue').ref(e);
+                inputRef.current = e;
+              }}
               type="text"
               placeholder="Найти на Wildberries"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
               className="w-full p-3 bg-gray-50 rounded-lg outline-none text-lg"
               autoFocus
             />
-            {searchValue && (
+            {inputValue && (
               <button
+                type="button"
                 onClick={handleClearSearch}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             )}
-          </div>
+          </form>
         </div>
 
         {/* Mobile SearchIcon Content */}
         <div className="flex-1 overflow-auto p-4">
-          {/* Recent Searches */}
-          {recentSearches.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-gray-500 text-sm font-medium mb-4 flex items-center">
-                <Clock className="w-4 h-4 mr-2" />
-                Вы искали
-              </h3>
-              <div className="space-y-3">
-                {recentSearches.map((search, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between"
-                  >
-                    <button
-                      onClick={() => handleSearchSubmit(search)}
-                      className="flex items-center flex-1 text-left"
-                    >
-                      <Clock className="w-4 h-4 text-gray-400 mr-3" />
-                      <span className="text-gray-700">{search}</span>
-                    </button>
-                    <button
-                      onClick={() => removeRecentSearch(search)}
-                      className="p-2 hover:bg-gray-100 rounded"
-                    >
-                      <X className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Popular Searches */}
           <div>
             <h3 className="text-gray-500 text-sm font-medium mb-4 flex items-center">
               <TrendingUp className="w-4 h-4 mr-2" />
-              Часто ищут
+              {isTyping || isFetching
+                ? 'Axtarılır...'
+                : inputValue && searchProduct?.length
+                ? 'Axtarış nəticələri'
+                : 'Populyar axtarışlar'}
             </h3>
             <div className="space-y-3">
-              {popularSearches.map((search, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSearchSubmit(search)}
-                  className="flex items-center w-full text-left p-2 hover:bg-gray-50 rounded-lg"
-                >
-                  <SearchIcon className="w-4 h-4 text-gray-400 mr-3" />
-                  <span className="text-gray-700">{search}</span>
-                </button>
-              ))}
+              {(isTyping || isFetching) && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500 mr-2"></div>
+                  <span className="text-gray-500 text-sm">Axtarılır...</span>
+                </div>
+              )}
+              {!isTyping &&
+                !isFetching &&
+                searchProduct?.map(
+                  (search: ISearchProductItem, index: number) => (
+                    <button
+                      key={search.id}
+                      onClick={() => handleSearchSubmit(String(search.id))}
+                      className="flex items-center w-full text-left p-2 hover:bg-gray-50 rounded-lg"
+                    >
+                      <SearchIcon className="w-4 h-4 text-gray-400 mr-3" />
+                      <div className="flex flex-col items-start">
+                        <span className="text-gray-700 font-medium">
+                          {search.title}
+                        </span>
+                        <span className="text-gray-500 text-sm">
+                          {search.companyName}
+                        </span>
+                      </div>
+                    </button>
+                  )
+                )}
+              {!isTyping &&
+                !isFetching &&
+                !searchProduct?.length &&
+                inputValue && (
+                  <div className="text-center text-gray-500 py-4">
+                    Heç bir nəticə tapılmadı
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -163,94 +185,97 @@ export const Search = () => {
 
   return (
     <div className="w-full relative z-40" ref={searchRef}>
-      <div className="relative">
+      <form onSubmit={handleSubmit(onSubmit)} className="relative">
         <input
-          ref={inputRef}
+          {...register('inputValue')}
+          ref={(e) => {
+            register('inputValue').ref(e);
+            inputRef.current = e;
+          }}
           type="text"
           placeholder={isMobile ? 'Axtarış...' : 'Məhsul axtarın...'}
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
           onClick={handleSearchClick}
           onFocus={() => setIsOpen(true)}
-          className="w-full p-2 lg:py-4 lg:px-4 bg-white rounded-xl outline-none pr-20 border border-gray-200 focus:border-purple-300 transition-colors"
+          className="w-full relative z-40 p-2 lg:py-4 lg:px-4 bg-white rounded-xl outline-none pr-20 border border-gray-200 focus:border-purple-300 transition-colors"
+          autoComplete="off"
         />
 
         <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          {searchValue && (
+          {inputValue && (
             <button
+              type="button"
               onClick={handleClearSearch}
               className="p-2 hover:bg-gray-100 rounded-lg"
             >
               <X className="text-gray-400 w-5 h-5" />
             </button>
           )}
-          <button
-            type="button"
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            onClick={handleSearchClick}
-          >
+          <button type="submit" className="p-2 hover:bg-gray-100 rounded-lg">
             <SearchIcon className="text-gray-400 w-5 h-5" />
           </button>
         </div>
-      </div>
+      </form>
 
       {/* Desktop Dropdown */}
       {!isMobile && isOpen && (
-        <div className="absolute top-full left-0 right-0 bg-white rounded-xl shadow-lg border border-gray-200 mt-2 max-h-96 overflow-auto">
-          <div className="p-4">
-            {/* Recent Searches Desktop */}
-            {recentSearches.length > 0 && (
-              <div className="mb-6">
+        <>
+          <div
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 w-full h-dvh bg-black/30"
+          />
+          <div className="absolute top-full left-0 right-0 bg-white rounded-xl shadow-lg border border-gray-200 mt-2 max-h-96 overflow-auto">
+            <div className="p-4">
+              {/* Popular Searches Desktop */}
+              <div>
                 <h3 className="text-gray-500 text-sm font-medium mb-3 flex items-center">
-                  <Clock className="w-4 h-4 mr-2" />
-                  Son axtarışlar
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  {isTyping || isFetching
+                    ? 'Axtarılır...'
+                    : inputValue && searchProduct?.length
+                    ? 'Axtarış nəticələri'
+                    : 'Populyar axtarışlar'}
                 </h3>
                 <div className="space-y-2">
-                  {recentSearches.map((search, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between group hover:bg-gray-50 p-2 rounded-lg"
-                    >
-                      <button
-                        onClick={() => handleSearchSubmit(search)}
-                        className="flex items-center flex-1 text-left"
-                      >
-                        <Clock className="w-4 h-4 text-gray-400 mr-3" />
-                        <span className="text-gray-700">{search}</span>
-                      </button>
-                      <button
-                        onClick={() => removeRecentSearch(search)}
-                        className="p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-200 rounded"
-                      >
-                        <X className="w-3 h-3 text-gray-400" />
-                      </button>
+                  {(isTyping || isFetching) && (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500 mr-2"></div>
+                      <span className="text-gray-500 text-sm">
+                        Axtarılır...
+                      </span>
                     </div>
-                  ))}
+                  )}
+                  {!isTyping &&
+                    !isFetching &&
+                    searchProduct?.map((search: ISearchProductItem) => (
+                      <button
+                        key={search.id}
+                        onClick={() => handleSearchSubmit(String(search.id))}
+                        className="flex items-center w-full text-left p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
+                        <SearchIcon className="w-4 h-4 text-gray-400 mr-3" />
+                        <div className="flex flex-col items-start">
+                          <span className="text-gray-700 font-medium">
+                            {search.title}
+                          </span>
+                          <span className="text-gray-500 text-sm">
+                            {search.companyName}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  {!isTyping &&
+                    !isFetching &&
+                    !searchProduct?.length &&
+                    inputValue && (
+                      <div className="text-center text-gray-500 py-4">
+                        Heç bir nəticə tapılmadı
+                      </div>
+                    )}
                 </div>
-              </div>
-            )}
-
-            {/* Popular Searches Desktop */}
-            <div>
-              <h3 className="text-gray-500 text-sm font-medium mb-3 flex items-center">
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Populyar axtarışlar
-              </h3>
-              <div className="space-y-2">
-                {popularSearches.map((search, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSearchSubmit(search)}
-                    className="flex items-center w-full text-left p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <SearchIcon className="w-4 h-4 text-gray-400 mr-3" />
-                    <span className="text-gray-700">{search}</span>
-                  </button>
-                ))}
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

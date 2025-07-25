@@ -4,6 +4,7 @@ import CategorySchema from '../models/categoryModel.js';
 import { formatImageUrls } from '../helpers/imageHelper.js';
 import { Op, Sequelize } from "sequelize";
 import SellerSchema from '../models/sellerModel.js';
+import Fuse from 'fuse.js';
 
 const productController = {
     getAllProducts: asyncHandler(async (req, res) => {
@@ -681,6 +682,384 @@ const productController = {
             }
         }
     }),
+
+    getSearchProduct: asyncHandler(async (req, res) => {
+        try {
+            const { q, limit = 20, threshold = 0.6 } = req.query;
+
+            if (!q || q.trim() === "") {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Axtarmaq üçün birşeylər yazın.'
+                });
+            }
+
+            // Türkçe karakter normalizasyonu
+            const normalizeText = (text) => {
+                if (!text) return "";
+                const turkishMap = {
+                    'ə': 'e', 'ö': 'o', 'ğ': 'g', 'ç': 'c', 'ş': 's', 'ü': 'u', 'ı': 'i', 'İ': 'i',
+                    'Ə': 'e', 'Ö': 'o', 'Ğ': 'g', 'Ç': 'c', 'Ş': 's', 'Ü': 'u'
+                };
+                return text.toLowerCase().replace(/[əöğçşıüƏÖĞÇŞÜİ]/g, char => turkishMap[char] || char);
+            };
+
+            // Arama terimini normalize et
+            const normalizedQuery = normalizeText(q.trim());
+
+            // Önce tüm ürünleri getir ve normalize et
+            const allProducts = await ProductSchema.findAll({
+                attributes: ['id', 'title', 'companyName', 'description'],
+            });
+
+            // Ürünleri normalize edilmiş versiyonlarıyla birlikte hazırla
+            const processedProducts = allProducts.map(product => {
+                const productJson = product.toJSON();
+                return {
+                    ...productJson,
+                    normalizedTitle: normalizeText(productJson.title),
+                    normalizedCompanyName: normalizeText(productJson.companyName),
+                    normalizedDescription: normalizeText(productJson.description)
+                };
+            });
+
+            // Gelişmiş Fuse.js konfigürasyonu
+            const fuseOptions = {
+                // Daha toleranslı eşik - "zra" -> "zara" gibi durumlar için
+                threshold: parseFloat(threshold),
+
+                // Konum ve mesafe parametrelerini optimize et
+                location: 0,
+                distance: 1000,
+
+                // Minimum karakter uzunluğu
+                minMatchCharLength: 1,
+
+                // Pattern length üzerindeki ceza
+                ignoreLocation: true,
+
+                // Fuzzy search parametreleri
+                useExtendedSearch: true,
+
+                // Arama alanları - hem orijinal hem normalize edilmiş versiyonlar
+                keys: [
+                    // Orijinal alanlar (yüksek ağırlık)
+                    {
+                        name: 'title',
+                        weight: 0.4
+                    },
+                    {
+                        name: 'companyName',
+                        weight: 0.3
+                    },
+                    // Normalize edilmiş alanlar (orta ağırlık)
+                    {
+                        name: 'normalizedTitle',
+                        weight: 0.2
+                    },
+                    {
+                        name: 'normalizedCompanyName',
+                        weight: 0.08
+                    },
+                    {
+                        name: 'description',
+                        weight: 0.015
+                    },
+                    {
+                        name: 'normalizedDescription',
+                        weight: 0.005
+                    }
+                ],
+
+                // Sonuç bilgileri
+                includeScore: true,
+                includeMatches: true,
+            };
+
+            // Fuse instance oluştur
+            const fuse = new Fuse(processedProducts, fuseOptions);
+
+            // Çoklu arama stratejisi
+            let searchResults = [];
+
+            // 1. Ana arama - orijinal sorgu
+            const mainSearch = fuse.search(q.trim());
+            searchResults.push(...mainSearch);
+
+            // 2. Normalize edilmiş arama
+            if (normalizedQuery !== q.trim().toLowerCase()) {
+                const normalizedSearch = fuse.search(normalizedQuery);
+                searchResults.push(...normalizedSearch);
+            }
+
+            // 3. Kelime bazlı arama (birden fazla kelime varsa)
+            const words = q.trim().split(/\s+/);
+            if (words.length > 1) {
+                words.forEach(word => {
+                    if (word.length > 1) {
+                        const wordSearch = fuse.search(word);
+                        searchResults.push(...wordSearch);
+                    }
+                });
+            }
+
+            // 4. Fuzzy pattern arama (özel karakterler için)
+            if (q.length >= 3) {
+                // Levenshtein benzeri pattern
+                const fuzzyPattern = q.split('').join('.*');
+                const fuzzySearch = fuse.search(`'${fuzzyPattern}`);
+                searchResults.push(...fuzzySearch);
+            }
+
+            // Sonuçları birleştir ve sırala
+            const uniqueResults = new Map();
+
+            searchResults.forEach(result => {
+                const id = result.item.id;
+                if (!uniqueResults.has(id) || uniqueResults.get(id).score > result.score) {
+                    uniqueResults.set(id, result);
+                }
+            });
+
+            // En iyi sonuçları al
+            const bestResults = Array.from(uniqueResults.values())
+                .sort((a, b) => a.score - b.score) // Düşük skor = daha iyi eşleşme
+                .slice(0, parseInt(limit));
+
+            // Sonuçları formatla
+            const formattedResults = bestResults.map(result => ({
+                id: result.item.id,
+                title: result.item.title,
+                companyName: result.item.companyName,
+                description: result.item.description,
+                searchScore: result.score,
+                matches: result.matches?.map(match => ({
+                    field: match.key,
+                    matchedText: match.value,
+                    indices: match.indices
+                }))
+            }));
+
+            // Fallback: Eğer hiç sonuç yoksa, SQL araması yap
+            let finalResults = formattedResults;
+
+            if (formattedResults.length === 0) {
+                console.log('Fuzzy search sonuç bulamadı, SQL fallback araması yapılıyor...');
+
+                // Daha geniş SQL araması
+                const sqlSearchTerms = [
+                    q.trim(),
+                    normalizedQuery,
+                    ...words.filter(w => w.length > 1)
+                ];
+
+                const sqlConditions = sqlSearchTerms.flatMap(term => [
+                    { title: { [Op.iLike]: `%${term}%` } },
+                    { companyName: { [Op.iLike]: `%${term}%` } },
+                    { description: { [Op.iLike]: `%${term}%` } }
+                ]);
+
+                const sqlResults = await ProductSchema.findAll({
+                    where: { [Op.or]: sqlConditions },
+                    attributes: ['id', 'title', 'companyName', 'description'],
+                    limit: parseInt(limit)
+                });
+
+                finalResults = sqlResults.map(product => ({
+                    ...product.toJSON(),
+                    searchScore: null,
+                    matches: null,
+                    fallbackSearch: true
+                }));
+            }
+
+            res.status(200).json({
+                success: true,
+                message: finalResults.length > 0
+                    ? `"${q}" sorğusu üçün ${finalResults.length} məhsul tapıldı.`
+                    : 'Heç bir məhsul tapılmadı. Başqa açar sözlər cəhd edin.',
+                data: finalResults,
+                searchInfo: {
+                    query: q,
+                    normalizedQuery: normalizedQuery,
+                    totalResults: finalResults.length,
+                    usedFuzzySearch: !finalResults[0]?.fallbackSearch,
+                    threshold: parseFloat(threshold),
+                    searchStrategies: [
+                        'exact-match',
+                        'normalized-search',
+                        'word-based-search',
+                        'fuzzy-pattern-match'
+                    ]
+                }
+            });
+
+        } catch (error) {
+            console.error("Gelişmiş ürün arama hatası:", error);
+
+            res.status(500).json({
+                success: false,
+                message: 'Server xətası baş verdi. Zəhmət olmasa sonra yenidən cəhd edin.',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    }),
+
+    getSearchSuggestions: asyncHandler(async (req, res) => {
+        try {
+            const { q, limit = 8 } = req.query;
+
+            if (!q || q.trim().length < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Axtarış üçün ən azı 1 hərf yazın.'
+                });
+            }
+
+            // Türkçe karakter normalizasyonu (aynı fonksiyon)
+            const normalizeText = (text) => {
+                if (!text) return "";
+                const turkishMap = {
+                    'ə': 'e', 'ö': 'o', 'ğ': 'g', 'ç': 'c', 'ş': 's', 'ü': 'u', 'ı': 'i', 'İ': 'i',
+                    'Ə': 'e', 'Ö': 'o', 'Ğ': 'g', 'Ç': 'c', 'Ş': 's', 'Ü': 'u'
+                };
+                return text.toLowerCase().replace(/[əöğçşıüƏÖĞÇŞÜİ]/g, char => turkishMap[char] || char);
+            };
+
+            const normalizedQuery = normalizeText(q.trim());
+
+            // Daha fazla veri al (öneriler için)
+            const products = await ProductSchema.findAll({
+                attributes: ['title', 'companyName'],
+                limit: 500 // Daha iyi öneriler için daha fazla data
+            });
+
+            // Ürünleri normalize et
+            const processedProducts = products.map(product => {
+                const productJson = product.toJSON();
+                return {
+                    ...productJson,
+                    normalizedTitle: normalizeText(productJson.title),
+                    normalizedCompanyName: normalizeText(productJson.companyName)
+                };
+            });
+
+            // Öneri odaklı Fuse konfigürasyonu
+            const fuseOptions = {
+                threshold: 0.5, // Öneriler için biraz daha toleranslı
+                location: 0,
+                distance: 500,
+                minMatchCharLength: 1,
+                ignoreLocation: true,
+                keys: [
+                    {
+                        name: 'title',
+                        weight: 0.6
+                    },
+                    {
+                        name: 'companyName',
+                        weight: 0.25
+                    },
+                    {
+                        name: 'normalizedTitle',
+                        weight: 0.1
+                    },
+                    {
+                        name: 'normalizedCompanyName',
+                        weight: 0.05
+                    }
+                ],
+                includeScore: true
+            };
+
+            const fuse = new Fuse(processedProducts, fuseOptions);
+
+            // Çoklu öneri stratejisi
+            let allSuggestions = [];
+
+            // 1. Orijinal arama
+            const mainSuggestions = fuse.search(q.trim());
+            allSuggestions.push(...mainSuggestions);
+
+            // 2. Normalize edilmiş arama
+            if (normalizedQuery !== q.trim().toLowerCase()) {
+                const normalizedSuggestions = fuse.search(normalizedQuery);
+                allSuggestions.push(...normalizedSuggestions);
+            }
+
+            // 3. Prefix arama (başlangıç karakterleri)
+            if (q.length >= 2) {
+                const prefixSuggestions = fuse.search(`^${q.trim()}`);
+                allSuggestions.push(...prefixSuggestions);
+            }
+
+            // Benzersiz önerileri al ve skorlarına göre sırala
+            const uniqueSuggestions = new Map();
+
+            allSuggestions.forEach(result => {
+                const suggestion = result.item.title.trim();
+                if (suggestion && suggestion.length > 0) {
+                    if (!uniqueSuggestions.has(suggestion) || uniqueSuggestions.get(suggestion).score > result.score) {
+                        uniqueSuggestions.set(suggestion, {
+                            text: suggestion,
+                            score: result.score,
+                            company: result.item.companyName
+                        });
+                    }
+                }
+            });
+
+            // Şirket adlarını da öneriler arasına ekle
+            allSuggestions.forEach(result => {
+                const companyName = result.item.companyName?.trim();
+                if (companyName && companyName.length > 0) {
+                    if (!uniqueSuggestions.has(companyName) || uniqueSuggestions.get(companyName).score > result.score) {
+                        uniqueSuggestions.set(companyName, {
+                            text: companyName,
+                            score: result.score,
+                            type: 'company'
+                        });
+                    }
+                }
+            });
+
+            // En iyi önerileri seç
+            const bestSuggestions = Array.from(uniqueSuggestions.values())
+                .sort((a, b) => {
+                    // Önce skora göre sırala
+                    if (a.score !== b.score) return a.score - b.score;
+                    // Sonra uzunluğa göre (kısa önce)
+                    return a.text.length - b.text.length;
+                })
+                .slice(0, parseInt(limit))
+                .map(suggestion => ({
+                    text: suggestion.text,
+                    type: suggestion.type || 'product',
+                    company: suggestion.company,
+                    score: suggestion.score
+                }));
+
+            res.status(200).json({
+                success: true,
+                message: `${bestSuggestions.length} öneri bulundu.`,
+                data: bestSuggestions,
+                meta: {
+                    query: q,
+                    normalizedQuery: normalizedQuery,
+                    totalSuggestions: bestSuggestions.length,
+                    algorithm: 'advanced-fuzzy-suggestions'
+                }
+            });
+
+        } catch (error) {
+            console.error("Gelişmiş öneri getirme hatası:", error);
+            res.status(500).json({
+                success: false,
+                message: 'Öneriler getirilirken server xətası baş verdi.',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    })
 }
 
 export default productController;

@@ -89,7 +89,6 @@ const productCommentController = {
             const limit = parseInt(req.query.limit) || 10;
             const offset = (page - 1) * limit;
 
-            // Ürün yorumlarını çek
             const productComments = await ProductCommentSchema.findAll({
                 where: { product_id },
                 limit,

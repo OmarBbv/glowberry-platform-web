@@ -4,14 +4,21 @@ import { MapPin } from 'lucide-react';
 import React from 'react';
 
 const obj = ['Товары', 'Авиабилет', 'Авиабилет'];
+interface Props {
+  location: string | null;
+}
 
-export default function TopBar() {
+export default function TopBar({ location }: Props) {
+  const loc = location?.split(' ');
+
   return (
     <nav className="hidden lg:flex flex-1 items-center p-1">
       <div className="w-[270px] flex items-center">
         <div className="inline-flex items-center gap-1 cursor-pointer">
           <MapPin className="w-4 text-gray-300" />
-          <span className="text-gray-300 text-sm">Baku</span>
+          <span className="text-gray-300 text-sm">
+            {location !== null ? loc?.[0] : 'Adress'}
+          </span>
         </div>
       </div>
       <div className="flex-2">

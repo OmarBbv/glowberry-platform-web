@@ -14,5 +14,6 @@ router.post('/',
 
 router.get('/', productCommentController.getAllComment);
 router.get('/:id', productCommentController.getProductCommentsById);
+router.get('/:id/comment', productCommentController.getFindByIdComment)
 
 export default router;

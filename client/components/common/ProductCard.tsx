@@ -18,6 +18,7 @@ import { useTokenValid } from '@/hooks/useTokenValid';
 import { handleLoginOpen } from '@/stores/slices/loginSlice';
 import { formatDate } from '@/utils/formatDate';
 import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
+import { useScrollWidth } from '@/hooks/useScrollWidth';
 
 interface Props {
   product: IProduct;
@@ -38,6 +39,7 @@ export default function ProductCard({
   const dispatch = useDispatch();
   const token = useTokenValid();
   const { role } = useLocalStorageAll();
+  const scrollWidth = useScrollWidth();
 
   const [localIsInWishlist, setLocalIsInWishlist] = useState<
     boolean | undefined
@@ -46,6 +48,7 @@ export default function ProductCard({
   const handleQuick = (e: React.MouseEvent) => {
     handleSelectProduct?.(product);
     e.stopPropagation();
+    document.body.style.paddingRight = `${scrollWidth}px`;
     dispatch(open());
     document.body.style.overflow = 'hidden';
   };
@@ -113,7 +116,7 @@ export default function ProductCard({
         <div className="hidden group-hover:flex items-center justify-center absolute bottom-2 left-1/2 -translate-x-1/2 w-full">
           <button
             onClick={handleQuick}
-            className="bg-white/90 w-4/5 rounded-md py-2 cursor-pointer"
+            className="bg-white/90 w-full mx-2 rounded-md py-2 text-sm cursor-pointer tracking-wider"
           >
             Быстрый просмотр
           </button>
