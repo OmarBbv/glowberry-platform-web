@@ -8,24 +8,12 @@ import { Loading } from '../ui/Loading';
 import { Error } from '../ui/Error';
 import { useState } from 'react';
 import Link from 'next/link';
-// import { CommentsModalView } from './CommentsModalView';
 
 interface Props {
   productID: string;
 }
 
 export const ReviewsSection = ({ productID: id }: Props) => {
-  // const [isComment, setIsComment] = useState(false);
-
-  // const handleCommentToggle = () => {
-  //   const overflow = getComputedStyle(document.body).overflow;
-  //   overflow === 'hidden'
-  //     ? (document.body.style = '')
-  //     : (document.body.style = 'hidden');
-
-  //   setIsComment((prev) => !prev);
-  // };
-
   const {
     data: comments,
     isLoading,
@@ -131,10 +119,6 @@ export const ReviewsSection = ({ productID: id }: Props) => {
         </div>
       )}
 
-      {/* <CommentsModalView
-        isComment={isComment}
-        handleCommentToggle={handleCommentToggle}
-      /> */}
       <SellerRecommendation productID={id} />
     </div>
   );

@@ -58,6 +58,10 @@ export const Search = () => {
     router.push(`/mehsullar/${productId}`);
   };
 
+  const handleRouterSearch = () => {
+    router.push('/axtaris');
+  };
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -227,14 +231,22 @@ export const Search = () => {
             <div className="p-4">
               {/* Popular Searches Desktop */}
               <div>
-                <h3 className="text-gray-500 text-sm font-medium mb-3 flex items-center">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  {isTyping || isFetching
-                    ? 'Axtarılır...'
-                    : inputValue && searchProduct?.length
-                    ? 'Axtarış nəticələri'
-                    : 'Populyar axtarışlar'}
-                </h3>
+                <div className="flex justify-between">
+                  <h3 className="text-gray-500 text-sm font-medium mb-3 flex items-center">
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    {isTyping || isFetching
+                      ? 'Axtarılır...'
+                      : inputValue && searchProduct?.length
+                      ? 'Axtarış nəticələri'
+                      : 'Populyar axtarışlar'}
+                  </h3>
+                  <button
+                    onClick={handleRouterSearch}
+                    className="text-xs hover:underline cursor-pointer"
+                  >
+                    Hamisina bax
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {(isTyping || isFetching) && (
                     <div className="flex items-center justify-center py-4">

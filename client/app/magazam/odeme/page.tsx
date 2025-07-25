@@ -99,7 +99,7 @@ export default function page() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* Maliyyə Statistikləri */}
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
@@ -150,9 +150,9 @@ export default function page() {
         </div>
       </div>
 
-      {/* Bank Hesabı və Ayarlar */}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Bank Hesabı */}
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Bank Hesabı</h2>
@@ -186,7 +186,7 @@ export default function page() {
           </div>
         </div>
 
-        {/* Ödəmə Ayarları */}
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Ödəmə Ayarları</h2>
@@ -219,7 +219,7 @@ export default function page() {
         </div>
       </div>
 
-      {/* Ödəmə Geçmişi */}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center justify-between">

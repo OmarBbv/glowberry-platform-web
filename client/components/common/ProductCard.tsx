@@ -2,7 +2,7 @@
 
 import { BadgePercent, FileHeart, ShoppingCart, Star } from 'lucide-react';
 import Image from 'next/image';
-import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { useDispatch } from 'react-redux';

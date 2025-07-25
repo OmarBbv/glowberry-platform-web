@@ -8,7 +8,7 @@ import { QuickPreview } from '../common/QuickPreview';
 
 const limit = 8;
 
-export const SmilarProduct = ({ productID }: { productID: string }) => {
+export const SearchProductGrid = ({ productID }: { productID: string }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const loadMoreRef = useRef(null);
 
