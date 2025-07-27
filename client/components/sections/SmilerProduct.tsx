@@ -100,7 +100,10 @@ export const SmilarProduct = ({ productID }: { productID: string }) => {
           return (
             <ProductCard
               key={product.id}
-              product={{ ...product, sellerPhoneNumber: product.seller_id || '' }}
+              product={{
+                ...product,
+                sellerPhoneNumber: product.seller_id || '',
+              }}
               handleSelectProduct={(prod) => handleSelectProduct(prod as any)}
             />
           );

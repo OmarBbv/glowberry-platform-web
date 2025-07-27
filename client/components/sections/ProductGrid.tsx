@@ -45,6 +45,8 @@ export default function ProductGrid() {
     [wishData]
   );
 
+  console.log('ProductGrid wishData', isProductInWishlist(146));
+
   const handleSelectProduct = (product: IProduct) => setSelectProduct(product);
   const allProducts = data?.pages.flatMap((page) => page.data) ?? [];
 
@@ -93,7 +95,13 @@ export default function ProductGrid() {
         </div>
       )}
 
-      {selectProduct !== null && <QuickPreview product={selectProduct} />}
+      {selectProduct !== null && (
+        <QuickPreview
+          product={selectProduct}
+          isInWishlist={isProductInWishlist}
+          refetchWishlist={refetchWishlist}
+        />
+      )}
     </div>
   );
 }

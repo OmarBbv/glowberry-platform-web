@@ -3,7 +3,7 @@ import axios from "axios";
 
 interface ProductServiceType {
     getAllProduct(pageParams: number, search?: string): Promise<IApiAllProductResponse>;
-    getAdvancedProducts(filters: SearchFilters): Promise<IApiAllProductResponse>;
+    // getAdvancedProducts(filters: SearchFilters): Promise<IApiAllProductResponse>;
     handleCreateProduct(data: ICreateProduct): Promise<any>;
     getProductById(id: string): Promise<IProduct>;
     getProductByIdComment(id: string, page?: number): Promise<ProductCommentResponse>
@@ -12,7 +12,7 @@ interface ProductServiceType {
     addWishlist: (productId: string) => Promise<any>;
     getSimilarProductsBySeller: (id: string, page?: number) => Promise<ApiSmilarProductResponse>
     getSimilarProducts: (id: string, page: number, limit: number) => Promise<ApiResponseSmilarProduct>
-    getProductSearch: (query: string) => Promise<IApiSearchProduct>;
+    getProductSearch: (query: string, pageParam: number, limit: number) => Promise<IApiSearchProduct>;
 }
 
 class ProductService implements ProductServiceType {
@@ -34,48 +34,48 @@ class ProductService implements ProductServiceType {
         }
     }
 
-    async getAdvancedProducts(filters: SearchFilters): Promise<IApiAllProductResponse> {
-        try {
-            const params: any = { page: filters.page || 1 };
+    // async getAdvancedProducts(filters: SearchFilters): Promise<IApiAllProductResponse> {
+    //     try {
+    //         const params: any = { page: filters.page || 1 };
 
-            if (filters.search && filters.search.trim()) {
-                params.search = filters.search.trim();
-            }
+    //         if (filters.search && filters.search.trim()) {
+    //             params.search = filters.search.trim();
+    //         }
 
-            if (filters.category_id && filters.category_id > 0) {
-                params.category_id = filters.category_id;
-            }
+    //         if (filters.category_id && filters.category_id > 0) {
+    //             params.category_id = filters.category_id;
+    //         }
 
-            if (filters.min_price !== undefined && filters.min_price >= 0) {
-                params.min_price = filters.min_price;
-            }
+    //         if (filters.min_price !== undefined && filters.min_price >= 0) {
+    //             params.min_price = filters.min_price;
+    //         }
 
-            if (filters.max_price !== undefined && filters.max_price >= 0) {
-                params.max_price = filters.max_price;
-            }
+    //         if (filters.max_price !== undefined && filters.max_price >= 0) {
+    //             params.max_price = filters.max_price;
+    //         }
 
-            if (filters.in_stock !== undefined) {
-                params.in_stock = filters.in_stock;
-            }
+    //         if (filters.in_stock !== undefined) {
+    //             params.in_stock = filters.in_stock;
+    //         }
 
-            if (filters.sort_by) {
-                params.sort_by = filters.sort_by;
-            }
+    //         if (filters.sort_by) {
+    //             params.sort_by = filters.sort_by;
+    //         }
 
-            if (filters.limit && filters.limit > 0) {
-                params.limit = filters.limit;
-            }
+    //         if (filters.limit && filters.limit > 0) {
+    //             params.limit = filters.limit;
+    //         }
 
-            const res = await axiosInstancePublic.get('/products', { params });
-            return res.data;
-        } catch (error: any) {
-            if (axios.isAxiosError(error)) {
-                throw new Error(error.response?.data?.message || error.message);
-            } else {
-                throw new Error('Bilinmeyen bir hata oluştu.');
-            }
-        }
-    }
+    //         const res = await axiosInstancePublic.get('/products', { params });
+    //         return res.data;
+    //     } catch (error: any) {
+    //         if (axios.isAxiosError(error)) {
+    //             throw new Error(error.response?.data?.message || error.message);
+    //         } else {
+    //             throw new Error('Bilinmeyen bir hata oluştu.');
+    //         }
+    //     }
+    // }
 
     async handleCreateProduct(data: ICreateProduct): Promise<any> {
         try {
@@ -229,10 +229,20 @@ class ProductService implements ProductServiceType {
         }
     }
 
-    async getProductSearch(query: string): Promise<IApiSearchProduct> {
+    async getProductSearch(
+        query: string,
+        page: number = 1,
+        limit: number = 12
+    ): Promise<IApiSearchProduct> {
         try {
-            const res = await axiosInstancePublic.get('/products/search', { params: { q: query } })
-            return res.data
+            const res = await axiosInstancePublic.get('/products/search', {
+                params: {
+                    q: query,
+                    page: page,
+                    limit: limit
+                }
+            });
+            return res.data;
         } catch (error: any) {
             if (axios.isAxiosError(error)) {
                 throw new Error(error.response?.data?.message || error.message);

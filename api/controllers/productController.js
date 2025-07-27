@@ -10,7 +10,7 @@ const productController = {
     getAllProducts: asyncHandler(async (req, res) => {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 8;
+            const limit = parseInt(req.query.limit) || 12;
             const offset = (page - 1) * limit;
 
             const search = req.query.search || req.query.title || "";
@@ -19,6 +19,9 @@ const productController = {
             const maxPrice = parseFloat(req.query.max_price);
             const inStock = req.query.in_stock === 'true';
             const sortBy = req.query.sort_by || 'newest';
+            const threshold = parseFloat(req.query.threshold) || 0.6;
+            const useFuzzySearch = req.query.fuzzy_search !== 'false';
+            const strictMode = req.query.strict_mode === 'true'; // Yeni parametre
 
             const normalizeText = (text) => {
                 if (!text) return "";
@@ -29,97 +32,45 @@ const productController = {
                 return text.toLowerCase().replace(/[əöğçşıüƏÖĞÇŞÜİ]/g, char => map[char] || char);
             };
 
-            const buildSearchConditions = (searchTerm) => {
-                if (!searchTerm) return {};
+            // Base filter conditions (category, price, stock)
+            const buildBaseFilters = () => {
+                const conditions = [];
 
-                const normalizedSearch = normalizeText(searchTerm);
-                const searchWords = normalizedSearch.split(/\s+/).filter(word => word.length > 0);
-
-                const basicSearchConditions = [
-                    { title: { [Op.iLike]: `%${searchTerm}%` } },
-                    { companyName: { [Op.iLike]: `%${searchTerm}%` } },
-                    { description: { [Op.iLike]: `%${searchTerm}%` } },
-                    { procurement: { [Op.iLike]: `%${searchTerm}%` } },
-
-                    Sequelize.literal(`
-                        specifications::text ILIKE '%${searchTerm.replace(/'/g, "''")}%'
-                    `),
-
-                    { '$Category.name$': { [Op.iLike]: `%${searchTerm}%` } },
-                    { '$Category.slug$': { [Op.iLike]: `%${searchTerm}%` } }
-                ];
-
-                if (searchWords.length > 1) {
-                    const wordSearchConditions = searchWords.map(word => ({
-                        [Op.or]: [
-                            { title: { [Op.iLike]: `%${word}%` } },
-                            { companyName: { [Op.iLike]: `%${word}%` } },
-                            { description: { [Op.iLike]: `%${word}%` } },
-                            { '$Category.name$': { [Op.iLike]: `%${word}%` } }
-                        ]
-                    }));
-                    basicSearchConditions.push({ [Op.and]: wordSearchConditions });
+                if (categoryId && !isNaN(categoryId)) {
+                    const selectedCategoryId = parseInt(categoryId);
+                    conditions.push({ category_id: selectedCategoryId });
                 }
 
-                return { [Op.or]: basicSearchConditions };
+                if (!isNaN(minPrice) && minPrice >= 0) {
+                    conditions.push(
+                        Sequelize.literal(`
+                            (CASE 
+                                WHEN discounted_price IS NOT NULL AND discounted_price > 0 
+                                THEN discounted_price 
+                                ELSE price 
+                            END) >= ${minPrice}
+                        `)
+                    );
+                }
+
+                if (!isNaN(maxPrice) && maxPrice >= 0) {
+                    conditions.push(
+                        Sequelize.literal(`
+                            (CASE 
+                                WHEN discounted_price IS NOT NULL AND discounted_price > 0 
+                                THEN discounted_price 
+                                ELSE price 
+                            END) <= ${maxPrice}
+                        `)
+                    );
+                }
+
+                if (inStock) {
+                    conditions.push({ quantity: { [Op.gt]: 0 } });
+                }
+
+                return conditions.length > 0 ? { [Op.and]: conditions } : {};
             };
-
-            let whereCondition = {};
-            const searchCondition = buildSearchConditions(search);
-
-            const allConditions = [];
-
-            if (Object.keys(searchCondition).length > 0) {
-                allConditions.push(searchCondition);
-            }
-
-            if (categoryId && !isNaN(categoryId)) {
-                const selectedCategoryId = parseInt(categoryId);
-
-                const childCategories = await CategorySchema.findAll({
-                    where: { parentId: selectedCategoryId },
-                    attributes: ['id']
-                });
-
-                const childCategoryIds = childCategories.map(cat => cat.id);
-
-                const categoryFilter = [selectedCategoryId, ...childCategoryIds];
-
-                allConditions.push({ category_id: { [Op.in]: categoryFilter } });
-            }
-
-            // Fiyat aralığı filtresi - kullanıcıya gösterilen fiyatı baz alarak filtrele
-            if (!isNaN(minPrice) && minPrice >= 0) {
-                allConditions.push(
-                    Sequelize.literal(`
-                        (CASE 
-                            WHEN discounted_price IS NOT NULL AND discounted_price > 0 
-                            THEN discounted_price 
-                            ELSE price 
-                        END) >= ${minPrice}
-                    `)
-                );
-            }
-
-            if (!isNaN(maxPrice) && maxPrice >= 0) {
-                allConditions.push(
-                    Sequelize.literal(`
-                        (CASE 
-                            WHEN discounted_price IS NOT NULL AND discounted_price > 0 
-                            THEN discounted_price 
-                            ELSE price 
-                        END) <= ${maxPrice}
-                    `)
-                );
-            }
-
-            if (inStock) {
-                allConditions.push({ quantity: { [Op.gt]: 0 } });
-            }
-
-            if (allConditions.length > 0) {
-                whereCondition = allConditions.length === 1 ? allConditions[0] : { [Op.and]: allConditions };
-            }
 
             const getSortOrder = (sortType) => {
                 switch (sortType) {
@@ -144,59 +95,414 @@ const productController = {
                 }
             };
 
-            const totalCount = await ProductSchema.count({
-                where: whereCondition,
-                include: search ? [{
-                    model: CategorySchema,
-                    as: 'Category',
-                    required: false
-                }] : []
-            });
+            // Öncelik bazlı arama fonksiyonu
+            const performPrioritySearch = async (searchTerm, baseFilters) => {
+                const normalizedSearchTerm = normalizeText(searchTerm);
+                let allResults = [];
+                let searchMethods = [];
 
-            let orderCondition;
+                const exactMatches = await ProductSchema.findAll({
+                    where: {
+                        [Op.and]: [
+                            baseFilters,
+                            {
+                                [Op.or]: [
+                                    // Tam eşleşme (case insensitive)
+                                    Sequelize.literal(`LOWER(title) = LOWER('${searchTerm.replace(/'/g, "''")}')`),
+                                    Sequelize.literal(`LOWER("companyName") = LOWER('${searchTerm.replace(/'/g, "''")}')`),
+                                    // Normalized tam eşleşme
+                                    Sequelize.literal(`LOWER(title) = LOWER('${normalizedSearchTerm.replace(/'/g, "''")}')`),
+                                    Sequelize.literal(`LOWER("companyName") = LOWER('${normalizedSearchTerm.replace(/'/g, "''")}')`),
+                                ]
+                            }
+                        ]
+                    },
+                    include: [{
+                        model: CategorySchema,
+                        as: 'Category',
+                        required: false,
+                        attributes: ['id', 'name', 'slug']
+                    }],
+                });
 
-            if (search && search.trim()) {
-                // Search varken de sortBy parametresini dikkate al
-                const baseSortOrder = getSortOrder(sortBy);
-                orderCondition = [
-                    [Sequelize.literal(`
-                        CASE 
-                            WHEN LOWER(title) = LOWER('${search.replace(/'/g, "''")}') THEN 1
-                            WHEN LOWER(title) LIKE LOWER('%${search.replace(/'/g, "''")}%') THEN 2
-                            WHEN LOWER("companyName") LIKE LOWER('%${search.replace(/'/g, "''")}%') THEN 3
-                            WHEN LOWER(description) LIKE LOWER('%${search.replace(/'/g, "''")}%') THEN 4
-                            ELSE 5
-                        END
-                    `), 'ASC'],
-                    ...baseSortOrder
-                ];
+                if (exactMatches.length > 0) {
+                    allResults.push({
+                        priority: 1,
+                        method: 'exact_match',
+                        results: exactMatches.map(p => ({ item: p.toJSON(), score: 0 }))
+                    });
+                    searchMethods.push('exact_match');
+                }
+
+                // 2. BAŞLANGIC EŞLEŞMELERİ - Yüksek öncelik
+                if (!strictMode || exactMatches.length === 0) {
+                    const startMatches = await ProductSchema.findAll({
+                        where: {
+                            [Op.and]: [
+                                baseFilters,
+                                {
+                                    [Op.or]: [
+                                        { title: { [Op.iLike]: `${searchTerm}%` } },
+                                        { companyName: { [Op.iLike]: `${searchTerm}%` } },
+                                        { title: { [Op.iLike]: `${normalizedSearchTerm}%` } },
+                                        { companyName: { [Op.iLike]: `${normalizedSearchTerm}%` } },
+                                    ]
+                                },
+                                // Tam eşleşmeleri hariç tut
+                                {
+                                    [Op.not]: {
+                                        [Op.or]: [
+                                            Sequelize.literal(`LOWER(title) = LOWER('${searchTerm.replace(/'/g, "''")}')`),
+                                            Sequelize.literal(`LOWER("companyName") = LOWER('${searchTerm.replace(/'/g, "''")}')`),
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        include: [{
+                            model: CategorySchema,
+                            as: 'Category',
+                            required: false,
+                            attributes: ['id', 'name', 'slug']
+                        }],
+                    });
+
+                    if (startMatches.length > 0) {
+                        allResults.push({
+                            priority: 2,
+                            method: 'starts_with',
+                            results: startMatches.map(p => ({ item: p.toJSON(), score: 0.1 }))
+                        });
+                        searchMethods.push('starts_with');
+                    }
+                }
+
+                // 3. FUSE.JS AKILLI ARAMA - Orta öncelik
+                if (!strictMode || (exactMatches.length === 0 && allResults.length < 5)) {
+
+                    // Önceki sonuçlarda bulunmayan ürünleri al
+                    const excludeIds = allResults.flatMap(r => r.results.map(item => item.item.id));
+
+                    const remainingProducts = await ProductSchema.findAll({
+                        where: {
+                            [Op.and]: [
+                                baseFilters,
+                                excludeIds.length > 0 ? { id: { [Op.notIn]: excludeIds } } : {}
+                            ]
+                        },
+                        include: [{
+                            model: CategorySchema,
+                            as: 'Category',
+                            required: false,
+                            attributes: ['id', 'name', 'slug']
+                        }],
+                    });
+
+                    if (remainingProducts.length > 0) {
+                        // Fuse.js için ürünleri hazırla
+                        const processedProducts = remainingProducts.map(product => {
+                            const productJson = product.toJSON();
+                            return {
+                                ...productJson,
+                                normalizedTitle: normalizeText(productJson.title),
+                                normalizedCompanyName: normalizeText(productJson.companyName),
+                                normalizedDescription: normalizeText(productJson.description),
+                                categoryName: productJson.Category?.name || '',
+                                normalizedCategoryName: normalizeText(productJson.Category?.name || '')
+                            };
+                        });
+
+                        // Katı mod için daha düşük threshold
+                        const fuseThreshold = strictMode ? Math.min(threshold, 0.4) : threshold;
+
+                        const fuseOptions = {
+                            threshold: fuseThreshold,
+                            location: 0,
+                            distance: 1000,
+                            minMatchCharLength: 2,
+                            ignoreLocation: true,
+                            useExtendedSearch: true,
+                            keys: [
+                                {
+                                    name: 'title',
+                                    weight: 0.5
+                                },
+                                {
+                                    name: 'companyName',
+                                    weight: 0.3
+                                },
+                                {
+                                    name: 'normalizedTitle',
+                                    weight: 0.15
+                                },
+                                {
+                                    name: 'normalizedCompanyName',
+                                    weight: 0.05
+                                }
+                            ],
+                            includeScore: true,
+                            includeMatches: true,
+                        };
+
+                        const fuse = new Fuse(processedProducts, fuseOptions);
+
+                        // Çoklu arama stratejisi
+                        let fuseResults = [];
+
+                        // Ana arama
+                        const mainSearch = fuse.search(searchTerm.trim());
+                        fuseResults.push(...mainSearch);
+
+                        // Normalize edilmiş arama (farklıysa)
+                        if (normalizedSearchTerm !== searchTerm.toLowerCase()) {
+                            const normalizedSearch = fuse.search(normalizedSearchTerm);
+                            fuseResults.push(...normalizedSearch);
+                        }
+
+                        // Sonuçları birleştir ve sırala
+                        const uniqueFuseResults = new Map();
+                        fuseResults.forEach(result => {
+                            const id = result.item.id;
+                            if (!uniqueFuseResults.has(id) || uniqueFuseResults.get(id).score > result.score) {
+                                uniqueFuseResults.set(id, result);
+                            }
+                        });
+
+                        const sortedFuseResults = Array.from(uniqueFuseResults.values())
+                            .sort((a, b) => a.score - b.score);
+
+                        if (sortedFuseResults.length > 0) {
+                            allResults.push({
+                                priority: 3,
+                                method: 'fuse_smart',
+                                results: sortedFuseResults
+                            });
+                            searchMethods.push('fuse_smart');
+                        }
+                    }
+                }
+
+                // 4. GENİŞ ARAMA - En düşük öncelik (sadece strict mode değilse)
+                if (!strictMode && allResults.flatMap(r => r.results).length < limit) {
+
+                    const excludeIds = allResults.flatMap(r => r.results.map(item => item.item.id));
+                    const words = searchTerm.split(/\s+/).filter(w => w.length > 1);
+
+                    if (words.length > 0) {
+                        const broadMatches = await ProductSchema.findAll({
+                            where: {
+                                [Op.and]: [
+                                    baseFilters,
+                                    excludeIds.length > 0 ? { id: { [Op.notIn]: excludeIds } } : {},
+                                    {
+                                        [Op.or]: [
+                                            { title: { [Op.iLike]: `%${searchTerm}%` } },
+                                            { companyName: { [Op.iLike]: `%${searchTerm}%` } },
+                                            { description: { [Op.iLike]: `%${searchTerm}%` } },
+                                            { '$Category.name$': { [Op.iLike]: `%${searchTerm}%` } },
+                                            // Kelime bazlı arama
+                                            ...words.map(word => ({
+                                                [Op.or]: [
+                                                    { title: { [Op.iLike]: `%${word}%` } },
+                                                    { companyName: { [Op.iLike]: `%${word}%` } }
+                                                ]
+                                            }))
+                                        ]
+                                    }
+                                ]
+                            },
+                            include: [{
+                                model: CategorySchema,
+                                as: 'Category',
+                                required: false,
+                                attributes: ['id', 'name', 'slug']
+                            }],
+                            limit: limit * 2 // Fazladan al, sonra sıralarız
+                        });
+
+                        if (broadMatches.length > 0) {
+                            allResults.push({
+                                priority: 4,
+                                method: 'broad_search',
+                                results: broadMatches.map(p => ({ item: p.toJSON(), score: 0.8 }))
+                            });
+                            searchMethods.push('broad_search');
+                        }
+                    }
+                }
+
+                return { allResults, searchMethods };
+            };
+
+            let finalProducts = [];
+            let totalCount = 0;
+            let searchMethod = 'database';
+            let usedMethods = [];
+
+            if (search && search.trim() && useFuzzySearch) {
+
+                const baseFilters = buildBaseFilters();
+                const { allResults, searchMethods } = await performPrioritySearch(search.trim(), baseFilters);
+
+                usedMethods = searchMethods;
+
+                // Tüm sonuçları öncelik sırasına göre birleştir
+                let combinedResults = [];
+
+                allResults
+                    .sort((a, b) => a.priority - b.priority)
+                    .forEach(resultGroup => {
+                        combinedResults.push(...resultGroup.results);
+                    });
+
+                totalCount = combinedResults.length;
+
+                // Sıralama uygula (relevance hariç)
+                if (sortBy !== 'relevance') {
+                    combinedResults = combinedResults.sort((a, b) => {
+                        const itemA = a.item;
+                        const itemB = b.item;
+
+                        if (sortBy === 'price_asc' || sortBy === 'price_desc') {
+                            const priceA = itemA.discounted_price || itemA.price;
+                            const priceB = itemB.discounted_price || itemB.price;
+                            return sortBy === 'price_asc' ? priceA - priceB : priceB - priceA;
+                        } else if (sortBy === 'popular') {
+                            return itemB.views - itemA.views;
+                        } else { // newest
+                            return new Date(itemB.createdAt) - new Date(itemA.createdAt);
+                        }
+                    });
+                }
+
+                // Pagination uygula
+                const paginatedResults = combinedResults.slice(offset, offset + limit);
+
+                // Sonuçları formatla
+                finalProducts = paginatedResults.map(result => ({
+                    ...result.item,
+                    images: formatImageUrls(result.item.images),
+                    category: result.item.Category || null,
+                    searchScore: result.score,
+                    searchMatches: result.matches?.map(match => ({
+                        field: match.key,
+                        matchedText: match.value,
+                        indices: match.indices
+                    }))
+                }));
+
+                searchMethod = 'priority_search';
+
             } else {
-                orderCondition = getSortOrder(sortBy);
-            }
+                // Geleneksel database araması (değişmez)
 
-            const products = await ProductSchema.findAll({
-                where: whereCondition,
-                include: [{
-                    model: CategorySchema,
-                    as: 'Category',
-                    required: false,
-                    attributes: ['id', 'name', 'slug']
-                }],
-                order: orderCondition,
-                limit,
-                offset,
-                distinct: true
-            });
+                const buildSearchConditions = (searchTerm) => {
+                    if (!searchTerm) return {};
 
-            const productsJson = products.map(product => product.toJSON());
+                    const normalizedSearch = normalizeText(searchTerm);
+                    const searchWords = normalizedSearch.split(/\s+/).filter(word => word.length > 0);
 
-            const productsWithFullImageUrls = productsJson.map(product => {
-                return {
-                    ...product,
-                    images: formatImageUrls(product.images),
-                    category: product.Category || null
+                    const basicSearchConditions = [
+                        { title: { [Op.iLike]: `%${searchTerm}%` } },
+                        { companyName: { [Op.iLike]: `%${searchTerm}%` } },
+                        { description: { [Op.iLike]: `%${searchTerm}%` } },
+                        { procurement: { [Op.iLike]: `%${searchTerm}%` } },
+
+                        Sequelize.literal(`
+                            specifications::text ILIKE '%${searchTerm.replace(/'/g, "''")}%'
+                        `),
+
+                        { '$Category.name$': { [Op.iLike]: `%${searchTerm}%` } },
+                        { '$Category.slug$': { [Op.iLike]: `%${searchTerm}%` } }
+                    ];
+
+                    if (searchWords.length > 1) {
+                        const wordSearchConditions = searchWords.map(word => ({
+                            [Op.or]: [
+                                { title: { [Op.iLike]: `%${word}%` } },
+                                { companyName: { [Op.iLike]: `%${word}%` } },
+                                { description: { [Op.iLike]: `%${word}%` } },
+                                { '$Category.name$': { [Op.iLike]: `%${word}%` } }
+                            ]
+                        }));
+                        basicSearchConditions.push({ [Op.and]: wordSearchConditions });
+                    }
+
+                    return { [Op.or]: basicSearchConditions };
                 };
-            });
+
+                let whereCondition = {};
+                const baseFilters = buildBaseFilters();
+                const searchCondition = buildSearchConditions(search);
+
+                const allConditions = [];
+
+                if (Object.keys(baseFilters).length > 0) {
+                    allConditions.push(baseFilters);
+                }
+
+                if (Object.keys(searchCondition).length > 0) {
+                    allConditions.push(searchCondition);
+                }
+
+                if (allConditions.length > 0) {
+                    whereCondition = allConditions.length === 1 ? allConditions[0] : { [Op.and]: allConditions };
+                }
+
+                totalCount = await ProductSchema.count({
+                    where: whereCondition,
+                    include: search ? [{
+                        model: CategorySchema,
+                        as: 'Category',
+                        required: false
+                    }] : []
+                });
+
+                let orderCondition;
+                if (search && search.trim()) {
+                    const baseSortOrder = getSortOrder(sortBy);
+                    orderCondition = [
+                        [Sequelize.literal(`
+                            CASE 
+                                WHEN LOWER(title) = LOWER('${search.replace(/'/g, "''")}') THEN 1
+                                WHEN LOWER(title) LIKE LOWER('%${search.replace(/'/g, "''")}%') THEN 2
+                                WHEN LOWER("companyName") LIKE LOWER('%${search.replace(/'/g, "''")}%') THEN 3
+                                WHEN LOWER(description) LIKE LOWER('%${search.replace(/'/g, "''")}%') THEN 4
+                                ELSE 5
+                            END
+                        `), 'ASC'],
+                        ...baseSortOrder
+                    ];
+                } else {
+                    orderCondition = getSortOrder(sortBy);
+                }
+
+                const products = await ProductSchema.findAll({
+                    where: whereCondition,
+                    include: [{
+                        model: CategorySchema,
+                        as: 'Category',
+                        required: false,
+                        attributes: ['id', 'name', 'slug']
+                    }],
+                    order: orderCondition,
+                    limit,
+                    offset,
+                    distinct: true
+                });
+
+                const productsJson = products.map(product => product.toJSON());
+
+                finalProducts = productsJson.map(product => {
+                    return {
+                        ...product,
+                        images: formatImageUrls(product.images),
+                        category: product.Category || null
+                    };
+                });
+
+                searchMethod = 'database';
+            }
 
             const filterInfo = {
                 search: search || null,
@@ -207,6 +513,11 @@ const productController = {
                 },
                 inStockOnly: inStock,
                 sortBy: sortBy,
+                searchMethod: searchMethod,
+                usedFuzzySearch: useFuzzySearch && search && search.trim(),
+                strictMode: strictMode,
+                fuzzyThreshold: threshold,
+                searchMethods: usedMethods,
                 pagination: {
                     currentPage: page,
                     perPage: limit,
@@ -219,7 +530,8 @@ const productController = {
 
             let message = 'Ürünler getirildi.';
             if (search) {
-                message = `"${search}" için ${totalCount} ürün bulundu.`;
+                const modeText = strictMode ? 'katı' : 'esnek';
+                message = `"${search}" için ${totalCount} ürün bulundu (${modeText} arama ile).`;
             } else if (categoryId) {
                 message = `Kategori için ${totalCount} ürün bulundu.`;
             } else if (minPrice || maxPrice || inStock) {
@@ -230,7 +542,7 @@ const productController = {
                 message,
                 success: true,
                 filters: filterInfo,
-                data: productsWithFullImageUrls
+                data: finalProducts
             });
 
         } catch (error) {
@@ -685,7 +997,12 @@ const productController = {
 
     getSearchProduct: asyncHandler(async (req, res) => {
         try {
-            const { q, limit = 20, threshold = 0.6 } = req.query;
+            const {
+                q,
+                limit = 12,
+                page = 1,
+                threshold = 0.6
+            } = req.query;
 
             if (!q || q.trim() === "") {
                 return res.status(400).json({
@@ -693,6 +1010,11 @@ const productController = {
                     message: 'Axtarmaq üçün birşeylər yazın.'
                 });
             }
+
+            // Sayfa ve limit değerlerini integer'a çevir
+            const currentPage = parseInt(page);
+            const itemsPerPage = parseInt(limit);
+            const offset = (currentPage - 1) * itemsPerPage;
 
             // Türkçe karakter normalizasyonu
             const normalizeText = (text) => {
@@ -725,25 +1047,13 @@ const productController = {
 
             // Gelişmiş Fuse.js konfigürasyonu
             const fuseOptions = {
-                // Daha toleranslı eşik - "zra" -> "zara" gibi durumlar için
                 threshold: parseFloat(threshold),
-
-                // Konum ve mesafe parametrelerini optimize et
                 location: 0,
                 distance: 1000,
-
-                // Minimum karakter uzunluğu
                 minMatchCharLength: 1,
-
-                // Pattern length üzerindeki ceza
                 ignoreLocation: true,
-
-                // Fuzzy search parametreleri
                 useExtendedSearch: true,
-
-                // Arama alanları - hem orijinal hem normalize edilmiş versiyonlar
                 keys: [
-                    // Orijinal alanlar (yüksek ağırlık)
                     {
                         name: 'title',
                         weight: 0.4
@@ -752,7 +1062,6 @@ const productController = {
                         name: 'companyName',
                         weight: 0.3
                     },
-                    // Normalize edilmiş alanlar (orta ağırlık)
                     {
                         name: 'normalizedTitle',
                         weight: 0.2
@@ -770,10 +1079,8 @@ const productController = {
                         weight: 0.005
                     }
                 ],
-
-                // Sonuç bilgileri
                 includeScore: true,
-                includeMatches: true,
+                includeMatches: false,
             };
 
             // Fuse instance oluştur
@@ -821,13 +1128,19 @@ const productController = {
                 }
             });
 
-            // En iyi sonuçları al
-            const bestResults = Array.from(uniqueResults.values())
-                .sort((a, b) => a.score - b.score) // Düşük skor = daha iyi eşleşme
-                .slice(0, parseInt(limit));
+            // Tüm sonuçları sırala (pagination öncesi)
+            const allResults = Array.from(uniqueResults.values())
+                .sort((a, b) => a.score - b.score); // Düşük skor = daha iyi eşleşme
+
+            // Toplam sonuç sayısı
+            const totalResults = allResults.length;
+            const totalPages = Math.ceil(totalResults / itemsPerPage);
+
+            // Pagination uygula
+            const paginatedResults = allResults.slice(offset, offset + itemsPerPage);
 
             // Sonuçları formatla
-            const formattedResults = bestResults.map(result => ({
+            const formattedResults = paginatedResults.map(result => ({
                 id: result.item.id,
                 title: result.item.title,
                 companyName: result.item.companyName,
@@ -842,9 +1155,10 @@ const productController = {
 
             // Fallback: Eğer hiç sonuç yoksa, SQL araması yap
             let finalResults = formattedResults;
+            let totalFallbackResults = 0;
+            let totalFallbackPages = 0;
 
-            if (formattedResults.length === 0) {
-                console.log('Fuzzy search sonuç bulamadı, SQL fallback araması yapılıyor...');
+            if (allResults.length === 0) {
 
                 // Daha geniş SQL araması
                 const sqlSearchTerms = [
@@ -859,10 +1173,20 @@ const productController = {
                     { description: { [Op.iLike]: `%${term}%` } }
                 ]);
 
+                // Önce toplam sayıyı al
+                const totalCount = await ProductSchema.count({
+                    where: { [Op.or]: sqlConditions }
+                });
+
+                totalFallbackResults = totalCount;
+                totalFallbackPages = Math.ceil(totalCount / itemsPerPage);
+
+                // Paginated SQL results
                 const sqlResults = await ProductSchema.findAll({
                     where: { [Op.or]: sqlConditions },
                     attributes: ['id', 'title', 'companyName', 'description'],
-                    limit: parseInt(limit)
+                    limit: itemsPerPage,
+                    offset: offset
                 });
 
                 finalResults = sqlResults.map(product => ({
@@ -873,17 +1197,30 @@ const productController = {
                 }));
             }
 
+            const usedFallback = allResults.length === 0;
+            const currentTotalResults = usedFallback ? totalFallbackResults : totalResults;
+            const currentTotalPages = usedFallback ? totalFallbackPages : totalPages;
+
             res.status(200).json({
                 success: true,
                 message: finalResults.length > 0
-                    ? `"${q}" sorğusu üçün ${finalResults.length} məhsul tapıldı.`
+                    ? `"${q}" sorğusu üçün ${currentTotalResults} məhsuldan ${finalResults.length} göstərilir.`
                     : 'Heç bir məhsul tapılmadı. Başqa açar sözlər cəhd edin.',
                 data: finalResults,
+                pagination: {
+                    currentPage: currentPage,
+                    itemsPerPage: itemsPerPage,
+                    totalResults: currentTotalResults,
+                    totalPages: currentTotalPages,
+                    hasNextPage: currentPage < currentTotalPages,
+                    hasPreviousPage: currentPage > 1,
+                    nextPage: currentPage < currentTotalPages ? currentPage + 1 : null,
+                    previousPage: currentPage > 1 ? currentPage - 1 : null
+                },
                 searchInfo: {
                     query: q,
                     normalizedQuery: normalizedQuery,
-                    totalResults: finalResults.length,
-                    usedFuzzySearch: !finalResults[0]?.fallbackSearch,
+                    usedFuzzySearch: !usedFallback,
                     threshold: parseFloat(threshold),
                     searchStrategies: [
                         'exact-match',

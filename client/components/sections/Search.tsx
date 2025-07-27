@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search as SearchIcon, X, TrendingUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { productService } from '@/services/productService';
-import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/navigation';
+import { set, useForm } from 'react-hook-form';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 type FormValues = {
   inputValue: string;
@@ -16,6 +16,7 @@ export const Search = () => {
   const searchRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const { register, handleSubmit, watch, reset } = useForm<FormValues>({
     defaultValues: {
@@ -33,11 +34,6 @@ export const Search = () => {
 
   const searchProduct = data?.data;
 
-  const onSubmit = (data: FormValues) => {
-    setIsOpen(false);
-    console.log('Search submitted:', data.inputValue);
-  };
-
   const handleClearSearch = () => {
     reset();
     if (inputRef.current) {
@@ -54,12 +50,28 @@ export const Search = () => {
 
   const handleSearchSubmit = (productId: string) => {
     setIsOpen(false);
-    reset();
     router.push(`/mehsullar/${productId}`);
   };
 
   const handleRouterSearch = () => {
+    setIsOpen(false);
     router.push('/axtaris');
+  };
+
+  const onSubmit = (data: FormValues) => {
+    setIsOpen(false);
+    if (data.inputValue.trim() === '') {
+      return;
+    }
+
+    const title = searchParams.get('basliq');
+    if (title) {
+      router.push(`/axtaris?basliq=${data.inputValue}`);
+      return;
+    }
+
+    router.push(`/axtaris?basliq=${data.inputValue}`);
+    console.log('Search submitted:', data.inputValue);
   };
 
   useEffect(() => {

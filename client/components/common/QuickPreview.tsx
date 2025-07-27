@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useDispatch, useSelector } from 'react-redux';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Zoom, Thumbs } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
@@ -12,20 +12,42 @@ import chechkIcon from '@/public/icons/BadgeCheck.svg';
 import { close } from '@/stores/slices/globalToggleSlice';
 import { RootState } from '@/stores/store';
 
-import { useQuery } from '@tanstack/react-query';
+import {
+  QueryObserverResult,
+  RefetchOptions,
+  useMutation,
+  useQuery,
+} from '@tanstack/react-query';
 import { productService } from '@/services/productService';
 import { useRouter } from 'next/navigation';
+import { useImageZoom } from '@/hooks/useImageZoom';
+import { wishlistService } from '@/services/wishlistService';
+import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
+import { useTokenValid } from '@/hooks/useTokenValid';
+import { handleLoginOpen } from '@/stores/slices/loginSlice';
 
 interface Props {
   product: IProduct;
+  isInWishlist?: (productId: number) => boolean;
+  refetchWishlist?: (
+    options?: RefetchOptions
+  ) => Promise<QueryObserverResult<IApiWishResponse, Error>>;
 }
 
-export const QuickPreview = ({ product }: Props) => {
+export const QuickPreview = ({
+  product,
+  isInWishlist,
+  refetchWishlist,
+}: Props) => {
   const router = useRouter();
   const dispatch = useDispatch();
   const { isOpen } = useSelector((state: RootState) => state.popup);
   const [activeIndex, setActiveIndex] = useState(0);
   const [thumbsSwiper, setThumbsSwiper] = useState<SwiperType | null>(null);
+  const token = useTokenValid();
+  const isProductInWishlist = isInWishlist?.(product.id) ?? false;
+  const [isShowMore, setIsShowMore] = useState(false);
+  // const { handlers, isZoomed } = useImageZoom();
 
   const { data: comments } = useQuery({
     queryKey: ['get/product/comment/preview'],
@@ -36,7 +58,24 @@ export const QuickPreview = ({ product }: Props) => {
   const averageRating = comments?.ratings.averageRating;
   const totalRatings = comments?.ratings.totalRatings;
 
+  const { mutate: wishMutate } = useMutation({
+    mutationFn: (id: string) => wishlistService.addWishlist(id),
+    onSuccess: () => refetchWishlist?.(),
+  });
+
+  const handleWishList = (productId: string) => {
+    if (!productId) return;
+
+    if (!token) {
+      dispatch(handleLoginOpen());
+      return;
+    }
+
+    wishMutate(productId);
+  };
+
   const handleClose = () => {
+    setIsShowMore(false);
     dispatch(close());
     document.body.style.paddingRight = '';
     document.body.style.overflow = 'visible';
@@ -73,7 +112,7 @@ export const QuickPreview = ({ product }: Props) => {
               clickable: true,
               dynamicBullets: true,
             }}
-            zoom={true}
+            // zoom={true}
             thumbs={{ swiper: thumbsSwiper }}
             onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
             className="h-full w-full"
@@ -184,60 +223,25 @@ export const QuickPreview = ({ product }: Props) => {
               <span>Хорошая цена</span>
             </div>
 
-            <div className="w-full text-nowrap bg-white space-y-3">
+            <div className="w-full bg-white space-y-3">
               <h3 className="text-gray-800 font-semibold text-sm border-b border-b-gray-300 pb-2">
                 Ürün Özellikleri
               </h3>
-              <div className="line-clamp-2">{product.description}</div>
-              {/* 
-              <div className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="w-24 font-medium text-gray-800">Türü:</span>
-                <span>{product.specifications.type}</span>
-              </div>
-
-              <div className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="w-24 font-medium text-gray-800">Renk:</span>
-                <span>{product.specifications.color}</span>
-              </div>
-
-              <div className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="w-24 font-medium text-gray-800">
-                  Ülke İhracat:
+              <div className="flex flex-col text-sm">
+                <span className={!isShowMore ? 'line-clamp-2' : ''}>
+                  {product.description}
                 </span>
-                <span>{product.specifications.brandCountry}</span>
+                <button
+                  onClick={() => setIsShowMore((prev) => !prev)}
+                  className="font-medium text-xs text-primary self-end cursor-pointer hover:underline"
+                >
+                  {isShowMore ? 'Скрыть' : 'Показать больше'}
+                </button>
               </div>
-
-              <div className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="w-24 font-medium text-gray-800">
-                  Ürün Kodu:
-                </span>
-                <span>{product.specifications.productNumber}</span>
-              </div> */}
-
-              {/* <div className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="w-24 font-medium text-gray-800 ">
-                  Kullanım Amacı:
-                </span>
-                <span>{product.specifications.purpose}</span>
-              </div>
-
-              <div className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="w-24 font-medium text-gray-800">
-                  Seri Numarası:
-                </span>
-                <span>{product.specifications.series}</span>
-              </div>
-
-              <div className="flex items-start gap-3 text-sm text-gray-700">
-                <span className="w-24 font-medium text-gray-800">
-                  Genişlik / Yükseklik:
-                </span>
-                <span>{product.specifications.volumeOrWeight}</span>
-              </div> */}
             </div>
 
             {/* Thumbnail swiper */}
-            <div>
+            <div className="relative">
               <Swiper
                 modules={[Thumbs]}
                 onSwiper={setThumbsSwiper}
@@ -248,7 +252,7 @@ export const QuickPreview = ({ product }: Props) => {
                 {product?.images?.map((image, index) => (
                   <SwiperSlide
                     key={index}
-                    className="cursor-pointer py-2 ml-2 max-w-[57px]"
+                    className="cursor-pointer py-2 ml-2 max-h-[250px] max-w-[57px] relative"
                   >
                     <Image
                       src={image}
@@ -257,7 +261,7 @@ export const QuickPreview = ({ product }: Props) => {
                       height={90}
                       className={`rounded-md h-[76px] object-cover w-full select-none ${
                         activeIndex === index
-                          ? 'ring ring-offset-2 ring-purple-custom'
+                          ? 'ring-2 ring-offset-1 ring-purple-custom'
                           : ''
                       }`}
                     />
@@ -266,16 +270,25 @@ export const QuickPreview = ({ product }: Props) => {
               </Swiper>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <div className="space-y-2 w-full">
                 <Button className="p-2">В корзину</Button>
                 <Button className="p-2" variant="primary-light">
                   Купить сейчас
                 </Button>
               </div>
-              <div className="mt-1 cursor-pointer">
-                <Icon name="heart" size={28} />
-              </div>
+              <button
+                onClick={() => handleWishList(String(product.id))}
+                className="cursor-pointer p-2 hover:bg-gray-100 rounded-full"
+              >
+                <Icon
+                  name="heart"
+                  size={20}
+                  className="sm:w-6 sm:h-6"
+                  color={isProductInWishlist ? '#AA41FF' : 'gray'}
+                  fill={isProductInWishlist ? '#AA41FF' : 'gray'}
+                />
+              </button>
             </div>
 
             <div className="flex items-center gap-1.5 text-sm mb-[70px]">

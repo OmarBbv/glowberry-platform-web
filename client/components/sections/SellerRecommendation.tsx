@@ -35,12 +35,14 @@ export const SellerRecommendation = ({ productID: id }: Props) => {
       return productService.getSimilarProductsBySeller(id, pageParam);
     },
     getNextPageParam: (lastPage) => {
-      return lastPage.pagination.hasNextPage ? lastPage.pagination.page + 1 : undefined;
+      return lastPage.pagination.hasNextPage
+        ? lastPage.pagination.page + 1
+        : undefined;
     },
     initialPageParam: 1,
   });
 
-  const allProducts = data?.pages.flatMap(page => page.data) ?? [];
+  const allProducts = data?.pages.flatMap((page) => page.data) ?? [];
 
   const handlePrev = () => {
     swiperRef.current?.slidePrev();
@@ -93,7 +95,12 @@ export const SellerRecommendation = ({ productID: id }: Props) => {
         >
           {allProducts.map((product) => {
             const discountPercentage = product.discounted_price
-              ? Math.round(((parseFloat(product.price) - parseFloat(product.discounted_price)) / parseFloat(product.price)) * 100)
+              ? Math.round(
+                  ((parseFloat(product.price) -
+                    parseFloat(product.discounted_price)) /
+                    parseFloat(product.price)) *
+                    100
+                )
               : 0;
 
             return (
@@ -116,7 +123,10 @@ export const SellerRecommendation = ({ productID: id }: Props) => {
 
                     <div className="w-full h-[30%] px-2 sm:px-3 py-2 flex flex-col justify-between">
                       <div className="text-red-600 font-semibold text-sm sm:text-base">
-                        {product.discounted_price ? product.discounted_price : product.price} ₽
+                        {product.discounted_price
+                          ? product.discounted_price
+                          : product.price}{' '}
+                        ₽
                         {product.discounted_price && (
                           <span className="text-gray-500 line-through text-xs ml-1">
                             {product.price} ₽
@@ -152,8 +162,9 @@ export const SellerRecommendation = ({ productID: id }: Props) => {
 
         <button
           onClick={handlePrev}
-          className={`hidden sm:block absolute top-1/2 -left-4 lg:-left-6 -translate-y-1/2 bg-white/80 hover:bg-white shadow-md rounded-full z-10 p-2 lg:p-3 transition-all duration-300 ${isBeginning ? 'opacity-0 pointer-events-none' : 'opacity-100'
-            }`}
+          className={`hidden sm:block absolute top-1/2 -left-4 lg:-left-6 -translate-y-1/2 bg-white/80 hover:bg-white shadow-md rounded-full z-10 p-2 lg:p-3 transition-all duration-300 ${
+            isBeginning ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
           aria-label="Previous slide"
         >
           <Icon name="arrow-left" size={16} className="lg:w-5 lg:h-5" />
@@ -161,8 +172,9 @@ export const SellerRecommendation = ({ productID: id }: Props) => {
 
         <button
           onClick={handleNext}
-          className={`hidden sm:block absolute top-1/2 -right-4 lg:-right-6 -translate-y-1/2 bg-white/80 hover:bg-white shadow-md rounded-full z-10 p-2 lg:p-3 transition-all duration-300 ${isEnd ? 'opacity-0 pointer-events-none' : 'opacity-100'
-            }`}
+          className={`hidden sm:block absolute top-1/2 -right-4 lg:-right-6 -translate-y-1/2 bg-white/80 hover:bg-white shadow-md rounded-full z-10 p-2 lg:p-3 transition-all duration-300 ${
+            isEnd ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
           aria-label="Next slide"
         >
           <Icon name="arrow-right" size={16} className="lg:w-5 lg:h-5" />

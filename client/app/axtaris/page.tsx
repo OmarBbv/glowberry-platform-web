@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { ChevronDown, Grid3X3, List, Check } from 'lucide-react';
 import { Search } from 'lucide-react';
 import ProductGrid from '@/components/sections/ProductGrid';
+import { SearchProductGrid } from '@/components/sections/SearchProductGrid';
 
 export default function page() {
   return (
     <div className="w-full space-y-5">
       <ProductFilerSearch />
+      <SearchProductGrid />
     </div>
   );
 }
@@ -29,7 +31,7 @@ const ProductFilerSearch = () => {
           <span className="text-lg">трусы женские бесшовные белье</span>
           <span className="text-xs">30 831 товар найден</span>
         </p>
-        <button className="text-gray-500 underline decoration-dashed">
+        <button className="text-gray-500 text-sm underline decoration-dashed underline-offset-4 cursor-pointer hover:text-gray-900">
           Рекомендации для вас
         </button>
       </div>
@@ -37,7 +39,10 @@ const ProductFilerSearch = () => {
       <div className="flex items-center gap-2">
         {Array.from({ length: 6 }).map((_, i) => {
           return (
-            <button className="flex items-center gap-2 cursor-pointer bg-gray-200 p-2 max-w-[250px] line-clamp-1 rounded-2xl">
+            <button
+              key={i}
+              className="flex items-center gap-2 cursor-pointer bg-gray-200 p-2 max-w-[250px] line-clamp-1 rounded-2xl"
+            >
               <Search />
               <span>бесшовные стринги</span>
             </button>
@@ -45,13 +50,12 @@ const ProductFilerSearch = () => {
         })}
       </div>
 
-      <Component />
-      <ProductGrid />
+      <SearchFilterToolbar />
     </section>
   );
 };
 
-const Component = () => {
+const SearchFilterToolbar = () => {
   const [saleActive, setSaleActive] = useState(true);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
