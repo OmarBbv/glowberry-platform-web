@@ -74,6 +74,7 @@ export const QuickPreview = ({
 
   const handleClose = () => {
     setIsShowMore(false);
+    // setActiveIndex(0);
     dispatch(close());
     document.body.style.paddingRight = '';
     document.body.style.overflow = 'visible';
@@ -99,7 +100,7 @@ export const QuickPreview = ({
         }`}
       ></div>
       <section
-        className={`max-w-[1000px] rounded-2xl overflow-hidden fixed top-1/2 -translate-y-1/2 z-[999] left-1/2 -translate-x-1/2 mx-auto w-full bg-white max-h-[700px] ${
+        className={`max-w-[1000px] rounded-2xl overflow-hidden fixed top-1/2 -translate-y-1/2 z-[999] left-1/2 -translate-x-1/2 mx-auto w-full bg-white h-[600px] ${
           isOpen ? 'flex' : 'hidden'
         }`}
       >

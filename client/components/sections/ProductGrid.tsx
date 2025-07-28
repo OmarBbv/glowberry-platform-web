@@ -1,13 +1,13 @@
 import { productService } from '@/services/productService';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Loading } from '../ui/Loading';
 import { Error } from '../ui/Error';
 import ProductCard from '../common/ProductCard';
 import { QuickPreview } from '../common/QuickPreview';
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { wishlistService } from '@/services/wishlistService';
 import { useLocalStorageAll } from '@/hooks/auth/useLocalStorageAll';
 import { useAllWishlist } from '@/hooks/data/useWishlist';
+import { useInView } from 'react-intersection-observer';
 
 export default function ProductGrid() {
   const { role, token } = useLocalStorageAll();
@@ -15,6 +15,7 @@ export default function ProductGrid() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const isWishlistEnabled = role === 'USER' && token !== undefined;
+  const { ref, inView } = useInView();
 
   const {
     data,
@@ -48,21 +49,10 @@ export default function ProductGrid() {
   const allProducts = data?.pages.flatMap((page) => page.data) ?? [];
 
   useEffect(() => {
-    if (!loadMoreRef.current || !hasNextPage || isFetchingNextPage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 1.0 }
-    );
-
-    observer.observe(loadMoreRef.current);
-
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (isLoading) return <Loading />;
   if (isError) return <Error />;
@@ -84,11 +74,12 @@ export default function ProductGrid() {
       </div>
 
       {hasNextPage && (
-        <div
-          ref={loadMoreRef}
-          className="h-10 flex items-center justify-center"
-        >
-          {isFetchingNextPage && <Loading />}
+        <div ref={ref} className="p-6 flex justify-center">
+          {isFetchingNextPage ? (
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+          ) : (
+            <Loading />
+          )}
         </div>
       )}
 

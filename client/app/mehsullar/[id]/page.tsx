@@ -29,6 +29,7 @@ import { useScrollWidth } from '@/hooks/device/useScrollWidth';
 import { RootState } from '@/stores/store';
 import { ShareProductModal } from '@/components/common/ShareProductModal';
 import Link from 'next/link';
+import { useImageHoverZoom } from '@/hooks/ui/useImageHoverZoom';
 
 export default function page() {
   const { id } = useParams();
@@ -117,6 +118,7 @@ export default function page() {
     () => allWish?.includes(Number(productId)),
     [allWish, productId]
   );
+  const { handleMouseMove, handleMouseLeave } = useImageHoverZoom();
 
   useEffect(() => {
     setIsWish(!!isWishData);
