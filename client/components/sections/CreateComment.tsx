@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { productService } from '@/services/productService';
 import { Dispatch, SetStateAction, useState } from 'react';
-import { useTokenValid } from '@/hooks/useTokenValid';
+import { useTokenValid } from '@/hooks/auth/useTokenValid';
 import { toast } from 'react-hot-toast';
 
 interface IFormValue {

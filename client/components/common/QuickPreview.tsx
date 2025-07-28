@@ -21,7 +21,7 @@ import {
 import { productService } from '@/services/productService';
 import { useRouter } from 'next/navigation';
 import { wishlistService } from '@/services/wishlistService';
-import { useTokenValid } from '@/hooks/useTokenValid';
+import { useTokenValid } from '@/hooks/auth/useTokenValid';
 import { handleLoginOpen } from '@/stores/slices/loginSlice';
 import Link from 'next/link';
 
@@ -46,7 +46,6 @@ export const QuickPreview = ({
   const token = useTokenValid();
   const isProductInWishlist = isInWishlist?.(product.id) ?? false;
   const [isShowMore, setIsShowMore] = useState(false);
-  // const { handlers, isZoomed } = useImageZoom();
 
   const { data: comments } = useQuery({
     queryKey: ['get/product/comment/preview'],

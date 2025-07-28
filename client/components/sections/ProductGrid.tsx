@@ -6,7 +6,8 @@ import ProductCard from '../common/ProductCard';
 import { QuickPreview } from '../common/QuickPreview';
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { wishlistService } from '@/services/wishlistService';
-import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
+import { useLocalStorageAll } from '@/hooks/auth/useLocalStorageAll';
+import { useAllWishlist } from '@/hooks/data/useWishlist';
 
 export default function ProductGrid() {
   const { role, token } = useLocalStorageAll();
@@ -32,9 +33,7 @@ export default function ProductGrid() {
     },
   });
 
-  const { data: wishData, refetch: refetchWishlist } = useQuery({
-    queryKey: ['get/wishlist'],
-    queryFn: () => wishlistService.getAllWishlist(),
+  const { wishData, refetchWishlist } = useAllWishlist({
     enabled: !!isWishlistEnabled,
   });
 

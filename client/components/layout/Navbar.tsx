@@ -13,7 +13,7 @@ import { useMutation } from '@tanstack/react-query';
 import { authService } from '@/services/authService';
 import { ProtectedRoute } from '../auth/ProtectedRoute';
 import { fetchAndSetLocation } from '@/utils/fetchAndSetLocation';
-import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
+import { useLocalStorageAll } from '@/hooks/auth/useLocalStorageAll';
 
 interface User {
   id: string;

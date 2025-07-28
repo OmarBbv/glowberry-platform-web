@@ -1,12 +1,12 @@
 'use client';
 
-import { useImageZoom } from '@/hooks/useImageZoom';
+import { useImageZoom } from '@/hooks/ui/useImageZoom';
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../ui/Icon';
 import { Button } from '../ui/Button';
-import { useHoverEffect } from '@/hooks/useHoverEffect';
+import { useHoverEffect } from '@/hooks/ui/useHoverEffect';
 import Link from 'next/link';
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
   price: number;
   productTitle: string;
   discountedPrice: number;
-  productId?:number;
+  productId?: number;
 }
 
 export const ProductHeader = ({
@@ -22,7 +22,7 @@ export const ProductHeader = ({
   price,
   productTitle,
   discountedPrice,
-  productId
+  productId,
 }: Props) => {
   if (!productTitle || !discountedPrice || !image || !price) return null;
 
@@ -88,9 +88,10 @@ export const ProductHeader = ({
             </div>
 
             <div className="space-y-1">
-              <button 
-              onClick={()=> router.back()}
-              className="text-sm font-medium text-gray-900 line-clamp-2 hover:text-purple-custom hover:underline">
+              <button
+                onClick={() => router.back()}
+                className="text-sm font-medium text-gray-900 line-clamp-2 hover:text-purple-custom hover:underline"
+              >
                 {productTitle}
               </button>
               <div className="text-xs text-gray-600">

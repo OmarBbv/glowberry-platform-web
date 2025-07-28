@@ -5,8 +5,10 @@ import { Loading } from '../ui/Loading';
 import { Error } from '../ui/Error';
 import ProductCard from '../common/ProductCard';
 import { QuickPreview } from '../common/QuickPreview';
-import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
+import { useLocalStorageAll } from '@/hooks/auth/useLocalStorageAll';
 import { wishlistService } from '@/services/wishlistService';
+import { MetaHead } from '@/components/common/MetaHead';
+import { useAllWishlist } from '@/hooks/data/useWishlist';
 
 const limit = 8;
 
@@ -42,9 +44,8 @@ export const SmilarProduct = ({ productID }: { productID: string }) => {
 
   const { role, token } = useLocalStorageAll();
   const isWishlistEnabled = role === 'USER' && token !== undefined;
-  const { data: wishData, refetch: refetchWishlist } = useQuery({
-    queryKey: ['get/wishlist'],
-    queryFn: () => wishlistService.getAllWishlist(),
+
+  const { wishData, refetchWishlist } = useAllWishlist({
     enabled: !!isWishlistEnabled,
   });
 
@@ -112,6 +113,10 @@ export const SmilarProduct = ({ productID }: { productID: string }) => {
 
   return (
     <>
+      <MetaHead
+        title="Benzer Ürünler - Glowberry"
+        description="İlgilendiğiniz ürüne benzer diğer güzellik ve bakım ürünlerini keşfedin."
+      />
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-6 gap-2 lg:gap-6 p-2 md:p-0">
         {allProducts.map((product) => {
           return (

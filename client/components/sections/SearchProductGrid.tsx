@@ -1,14 +1,14 @@
 import { productService } from '@/services/productService';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Loading } from '../ui/Loading';
 import { Error } from '../ui/Error';
 import ProductCard from '../common/ProductCard';
 import { QuickPreview } from '../common/QuickPreview';
 import { useInView } from 'react-intersection-observer';
 import { useSearchParams } from 'next/navigation';
-import { wishlistService } from '@/services/wishlistService';
-import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
+import { useLocalStorageAll } from '@/hooks/auth/useLocalStorageAll';
+import { useAllWishlist } from '@/hooks/data/useWishlist';
 
 export const SearchProductGrid = ({ productID }: { productID?: string }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -20,9 +20,8 @@ export const SearchProductGrid = ({ productID }: { productID?: string }) => {
 
   const { role, token } = useLocalStorageAll();
   const isWishlistEnabled = role === 'USER' && token !== undefined;
-  const { data: wishData, refetch: refetchWishlist } = useQuery({
-    queryKey: ['get/wishlist'],
-    queryFn: () => wishlistService.getAllWishlist(),
+
+  const { wishData, refetchWishlist } = useAllWishlist({
     enabled: !!isWishlistEnabled,
   });
 

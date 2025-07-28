@@ -14,11 +14,11 @@ import {
   useMutation,
 } from '@tanstack/react-query';
 import { wishlistService } from '@/services/wishlistService';
-import { useTokenValid } from '@/hooks/useTokenValid';
+import { useTokenValid } from '@/hooks/auth/useTokenValid';
 import { handleLoginOpen } from '@/stores/slices/loginSlice';
 import { formatDate } from '@/utils/formatDate';
-import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
-import { useScrollWidth } from '@/hooks/useScrollWidth';
+import { useLocalStorageAll } from '@/hooks/auth/useLocalStorageAll';
+import { useScrollWidth } from '@/hooks/device/useScrollWidth';
 
 interface Props {
   product: IProduct;

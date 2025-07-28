@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import React from 'react';
 import { Icon } from '../ui/Icon';
-import { useHoverEffect } from '@/hooks/useHoverEffect';
+import { useHoverEffect } from '@/hooks/ui/useHoverEffect';
 
 export default function BreadCrump() {
   const { handlers, isHovered } = useHoverEffect();
 
   return (
     <nav className="text-sm hidden text-gray-400 md:flex flex-wrap items-center space-x-2 w-full">
-      <Link href="/" {...handlers}> 
+      <Link href="/" {...handlers}>
         <Icon
           name="arrow-left"
           size={25}
@@ -28,7 +28,7 @@ export default function BreadCrump() {
       <Link href="/zhenchinam" className="hover:underline">
         Женщинам
       </Link>
-      <span>/</span> 
+      <span>/</span>
       <Link href="/zhenchinam/bryuki" className="hover:underline">
         Брюки
       </Link>

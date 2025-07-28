@@ -8,31 +8,25 @@ import Link from 'next/link';
 import { Heart, Trash2, ShoppingCart, Star } from 'lucide-react';
 import { formatDate } from '@/utils/formatDate';
 import { wishlistService } from '@/services/wishlistService';
-import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
+import { useLocalStorageAll } from '@/hooks/auth/useLocalStorageAll';
+import { useAllWishlist } from '@/hooks/data/useWishlist';
 
 export default function page() {
   const { role, token } = useLocalStorageAll();
   const isWishlistEnabled = role === 'USER' && token !== undefined;
 
-  const {
-    data: wishData,
-    isError,
-    isPending,
-    refetch,
-  } = useQuery({
-    queryKey: ['get/all/wishlist'],
-    queryFn: () => wishlistService.getAllWishlist(),
+  const { wishData, refetchWishlist, isError, isPending } = useAllWishlist({
     enabled: !!isWishlistEnabled,
   });
 
   const { mutate: removeFromWishlist } = useMutation({
     mutationFn: (wishID: string) => wishlistService.addWishlist(wishID),
-    onSuccess: () => refetch(),
+    onSuccess: () => refetchWishlist(),
   });
 
   const { mutate: removeAllWishlist } = useMutation({
     mutationFn: () => wishlistService.deleteAllWishlist(),
-    onSuccess: () => refetch(),
+    onSuccess: () => refetchWishlist(),
   });
 
   const handleRemoveFromWishlist = (
@@ -80,7 +74,7 @@ export default function page() {
             Не удалось загрузить избранные товары
           </p>
           <button
-            onClick={() => refetch()}
+            onClick={() => refetchWishlist()}
             className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
           >
             Попробовать снова
