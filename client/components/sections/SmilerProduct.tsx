@@ -1,10 +1,12 @@
 import { productService } from '@/services/productService';
-import { useInfiniteQuery } from '@tanstack/react-query';
-import React, { useRef, useState, useEffect } from 'react';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Loading } from '../ui/Loading';
 import { Error } from '../ui/Error';
 import ProductCard from '../common/ProductCard';
 import { QuickPreview } from '../common/QuickPreview';
+import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
+import { wishlistService } from '@/services/wishlistService';
 
 const limit = 8;
 
@@ -37,6 +39,21 @@ export const SmilarProduct = ({ productID }: { productID: string }) => {
 
     initialPageParam: 1,
   });
+
+  const { role, token } = useLocalStorageAll();
+  const isWishlistEnabled = role === 'USER' && token !== undefined;
+  const { data: wishData, refetch: refetchWishlist } = useQuery({
+    queryKey: ['get/wishlist'],
+    queryFn: () => wishlistService.getAllWishlist(),
+    enabled: !!isWishlistEnabled,
+  });
+
+  const isProductInWishlist = useCallback(
+    (productId: number) => {
+      return wishData?.data?.some((w) => w.product.id === productId) || false;
+    },
+    [wishData]
+  );
 
   const handleSelectProduct = (product: any) => {
     setSelectedProduct(product);
@@ -105,6 +122,8 @@ export const SmilarProduct = ({ productID }: { productID: string }) => {
                 sellerPhoneNumber: product.seller_id || '',
               }}
               handleSelectProduct={(prod) => handleSelectProduct(prod as any)}
+              refetchWishlist={refetchWishlist}
+              isInWishlist={isProductInWishlist(product.id)}
             />
           );
         })}
@@ -119,7 +138,13 @@ export const SmilarProduct = ({ productID }: { productID: string }) => {
         </div>
       )}
 
-      {selectedProduct && <QuickPreview product={selectedProduct} />}
+      {selectedProduct && (
+        <QuickPreview
+          product={selectedProduct}
+          isInWishlist={isProductInWishlist}
+          refetchWishlist={refetchWishlist}
+        />
+      )}
     </>
   );
 };

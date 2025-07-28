@@ -20,9 +20,7 @@ import {
 } from '@tanstack/react-query';
 import { productService } from '@/services/productService';
 import { useRouter } from 'next/navigation';
-import { useImageZoom } from '@/hooks/useImageZoom';
 import { wishlistService } from '@/services/wishlistService';
-import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
 import { useTokenValid } from '@/hooks/useTokenValid';
 import { handleLoginOpen } from '@/stores/slices/loginSlice';
 import Link from 'next/link';

@@ -6,12 +6,15 @@ import { Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../ui/Icon';
 import { Button } from '../ui/Button';
+import { useHoverEffect } from '@/hooks/useHoverEffect';
+import Link from 'next/link';
 
 interface Props {
   image: string;
   price: number;
   productTitle: string;
   discountedPrice: number;
+  productId?:number;
 }
 
 export const ProductHeader = ({
@@ -19,16 +22,19 @@ export const ProductHeader = ({
   price,
   productTitle,
   discountedPrice,
+  productId
 }: Props) => {
+  if (!productTitle || !discountedPrice || !image || !price) return null;
+
   const router = useRouter();
   const { handlers, isZoomed } = useImageZoom();
-
-  if (!productTitle || !discountedPrice || !image || !price) return null;
+  const { handlers: hoverhandlers, isHovered } = useHoverEffect();
 
   return (
     <header className="w-full sticky top-0 left-0 z-20 bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-[1504px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-2">
         <button
+          {...hoverhandlers}
           onClick={() => router.back()}
           className="flex items-center text-sm cursor-pointer gap-2 group"
         >
@@ -36,6 +42,7 @@ export const ProductHeader = ({
             name="arrow-left"
             size={20}
             className="mt-0.5 text-black transition-colors group-hover:text-purple-custom!"
+            color={isHovered ? '#810bf7' : 'gray'}
           />
           <span className="text-black transition-colors group-hover:text-purple-custom">
             Назад
@@ -45,8 +52,7 @@ export const ProductHeader = ({
 
       <div className="mx-auto max-w-[1504px] w-full px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-0">
-          {/* Image + Info */}
-          <div className="flex w-full lg:w-[55%] items-center gap-2">
+          <div className="flex w-full lg:w-[55%] gap-2">
             <div className="relative shrink-0">
               <Image
                 width={100}
@@ -82,9 +88,11 @@ export const ProductHeader = ({
             </div>
 
             <div className="space-y-1">
-              <div className="text-sm font-medium text-gray-900 line-clamp-2">
+              <button 
+              onClick={()=> router.back()}
+              className="text-sm font-medium text-gray-900 line-clamp-2 hover:text-purple-custom hover:underline">
                 {productTitle}
-              </div>
+              </button>
               <div className="text-xs text-gray-600">
                 4,9 1 151 оценка 2 шт.
               </div>

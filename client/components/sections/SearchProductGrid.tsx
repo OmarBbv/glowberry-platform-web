@@ -1,12 +1,14 @@
 import { productService } from '@/services/productService';
-import { useInfiniteQuery } from '@tanstack/react-query';
-import React, { useRef, useState, useEffect } from 'react';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Loading } from '../ui/Loading';
 import { Error } from '../ui/Error';
 import ProductCard from '../common/ProductCard';
 import { QuickPreview } from '../common/QuickPreview';
 import { useInView } from 'react-intersection-observer';
 import { useSearchParams } from 'next/navigation';
+import { wishlistService } from '@/services/wishlistService';
+import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
 
 export const SearchProductGrid = ({ productID }: { productID?: string }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -15,6 +17,21 @@ export const SearchProductGrid = ({ productID }: { productID?: string }) => {
   const limit = 12;
 
   const searchQuery = searchParams.get('basliq') || '';
+
+  const { role, token } = useLocalStorageAll();
+  const isWishlistEnabled = role === 'USER' && token !== undefined;
+  const { data: wishData, refetch: refetchWishlist } = useQuery({
+    queryKey: ['get/wishlist'],
+    queryFn: () => wishlistService.getAllWishlist(),
+    enabled: !!isWishlistEnabled,
+  });
+
+  const isProductInWishlist = useCallback(
+    (productId: number) => {
+      return wishData?.data?.some((w) => w.product.id === productId) || false;
+    },
+    [wishData]
+  );
 
   const handleSelectProduct = (product: any) => {
     setSelectedProduct(product);
@@ -81,6 +98,8 @@ export const SearchProductGrid = ({ productID }: { productID?: string }) => {
                 sellerPhoneNumber: product.seller_id || '',
               }}
               handleSelectProduct={(prod) => handleSelectProduct(prod as any)}
+              refetchWishlist={refetchWishlist}
+              isInWishlist={isProductInWishlist(product.id)}
             />
           );
         })}
@@ -96,7 +115,13 @@ export const SearchProductGrid = ({ productID }: { productID?: string }) => {
         </div>
       )}
 
-      {selectedProduct && <QuickPreview product={selectedProduct} />}
+      {selectedProduct && (
+        <QuickPreview
+          product={selectedProduct}
+          isInWishlist={isProductInWishlist}
+          refetchWishlist={refetchWishlist}
+        />
+      )}
     </>
   );
 };

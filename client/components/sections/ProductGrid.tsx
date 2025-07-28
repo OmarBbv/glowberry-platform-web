@@ -45,8 +45,6 @@ export default function ProductGrid() {
     [wishData]
   );
 
-  console.log('ProductGrid wishData', isProductInWishlist(146));
-
   const handleSelectProduct = (product: IProduct) => setSelectProduct(product);
   const allProducts = data?.pages.flatMap((page) => page.data) ?? [];
 
