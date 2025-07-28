@@ -1,5 +1,8 @@
-import { Dispatch, SetStateAction } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 import { Icon } from '../ui/Icon';
+import { formatDate } from '@/utils/formatDate';
+import { useDispatch } from 'react-redux';
+import { handleToggleProductShareModal } from '@/stores/slices/globalToggleSlice';
 
 interface Props {
   setIsOpen: Dispatch<SetStateAction<boolean>>;
@@ -12,6 +15,10 @@ export default function SpecificationsAndDescription({
   setIsOpen,
   product,
 }: Props) {
+  const dispatch = useDispatch();
+
+  const handleShowShareModal = () => dispatch(handleToggleProductShareModal());
+
   return (
     <div>
       {/* Overlay */}
@@ -152,14 +159,21 @@ export default function SpecificationsAndDescription({
         <div className="border-t border-gray-100 px-6 py-4 bg-white">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <div className="text-2xl font-bold text-red-500">222 ₽</div>
-              <div className="text-sm text-gray-500">2 августа</div>
+              <div className="text-2xl font-bold text-red-500">
+                {product?.price} ₽
+              </div>
+              <div className="text-sm text-gray-500">
+                {formatDate(String(product?.createdAt))}
+              </div>
             </div>
           </div>
 
           <div className="flex gap-3">
-            <button className="flex-1 bg-purple-100 text-purple-700 font-medium py-3 px-4 rounded-lg hover:bg-purple-200 transition-colors">
-              Купить сейчас
+            <button
+              onClick={handleShowShareModal}
+              className="flex-1 bg-purple-100 text-purple-700 font-medium py-3 px-4 rounded-lg hover:bg-purple-200 transition-colors"
+            >
+              Поделиться товаром
             </button>
             <button className="flex-1 bg-purple-600 text-white font-medium py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors">
               В корзину

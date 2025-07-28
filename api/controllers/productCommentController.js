@@ -10,14 +10,25 @@ const productCommentController = {
             const { product_id, rating, comment } = req.body;
             const user = req.user;
 
-            if (!user) return res.status(400).json({
-                success: false,
-                message: 'Sadece Istifadeciler comment yazabilir.'
-            });
+            console.log("➡️ Yorum oluşturma isteği geldi:");
+            console.log("product_id:", product_id);
+            console.log("rating:", rating);
+            console.log("comment:", comment);
+            console.log("user:", user);
+
+            if (!user) {
+                console.warn("⚠️ Kullanıcı bulunamadı");
+                return res.status(400).json({
+                    success: false,
+                    message: 'Sadece Istifadeciler comment yazabilir.'
+                });
+            }
 
             const findProduct = await ProductSchema.findOne({ where: { id: product_id } });
+            console.log("✅ Ürün bulundu mu:", !!findProduct);
 
             if (!findProduct) {
+                console.warn("❌ Ürün bulunamadı");
                 return res.status(404).json({
                     success: false,
                     message: 'Ürün bulunamadı.'
@@ -25,8 +36,10 @@ const productCommentController = {
             }
 
             const files = req.files || [];
+            console.log("🖼️ Gelen dosyalar:", files);
 
             const images = generateImageUrls(files, req);
+            console.log("🖼️ Oluşturulan image URL'leri:", images);
 
             const newProductComment = await ProductCommentSchema.create({
                 product_id: findProduct.id,
@@ -34,15 +47,18 @@ const productCommentController = {
                 rating,
                 comment,
                 images,
-            })
+            });
+
+            console.log("✅ Yorum başarıyla oluşturuldu:", newProductComment);
 
             res.status(201).json({
                 success: true,
                 message: 'Yorum paylasildi.',
                 data: newProductComment
-            })
+            });
 
         } catch (error) {
+            console.error("❌ createComment hata:", error);
             res.status(500).json({
                 success: false,
                 message: 'Bir hata oluştu.',
@@ -50,7 +66,7 @@ const productCommentController = {
             });
         }
     }),
-
+    
     getAllComment: asyncHandler(async (req, res) => {
         try {
             const page = parseInt(req.query.page) || 1;

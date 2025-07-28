@@ -1,7 +1,7 @@
 interface ProductCommentResponse {
     success: boolean;
     message: string;
-    data: ProductComment[];
+    data: IProductComment[];
     totalCount: number;
     currentPage: number;
     totalPages: number;
@@ -11,7 +11,7 @@ interface ProductCommentResponse {
     }
 }
 
-interface ProductComment {
+interface IProductComment {
     id: string;
     product_id: number;
     user_id: string;

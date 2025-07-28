@@ -22,6 +22,7 @@ interface Props {
 export const CreateComment = ({ setCommentIsOpen, id }: Props) => {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [ratingError, setRatingError] = useState<boolean>(false);
 
   const { register, handleSubmit } = useForm<IFormValue>({
     defaultValues: {
@@ -47,6 +48,11 @@ export const CreateComment = ({ setCommentIsOpen, id }: Props) => {
       comment: data.comment,
       images: data.images,
     };
+
+    if (payload.rating === 0) {
+      setRatingError(true);
+      return;
+    }
 
     mutateAsync(payload);
   };
@@ -100,6 +106,11 @@ export const CreateComment = ({ setCommentIsOpen, id }: Props) => {
               </button>
             ))}
           </div>
+          {ratingError && (
+            <p className="text-red-500 text-xs mt-1 mx-1">
+              Lütfen bir değerlendirme seçin
+            </p>
+          )}
         </div>
 
         <div className="mb-8">

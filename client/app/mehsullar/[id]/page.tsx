@@ -18,7 +18,7 @@ import { formatDate } from '@/utils/formatDate';
 import { CreateComment } from '@/components/sections/CreateComment';
 import { useRouter } from 'next/navigation';
 import { useTokenValid } from '@/hooks/useTokenValid';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { handleLoginOpen } from '@/stores/slices/loginSlice';
 import SpecificationsAndDescription from '@/components/sections/SpecificationsAndDescription';
 import { wishlistService } from '@/services/wishlistService';
@@ -26,6 +26,9 @@ import { ShareButton } from '@/components/ui/ShareButton';
 import { SmilarProduct } from '@/components/sections/SmilerProduct';
 import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
 import { useScrollWidth } from '@/hooks/useScrollWidth';
+import { RootState } from '@/stores/store';
+import { ShareProductModal } from '@/components/common/ShareProductModal';
+import Link from 'next/link';
 
 export default function page() {
   const { id } = useParams();
@@ -40,6 +43,7 @@ export default function page() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [mainSwiper, setMainSwiper] = useState<any>(null);
   const [commentIsOpen, setCommentIsOpen] = useState(false);
+  const { isShowShareModal } = useSelector((state: RootState) => state.popup);
   const dispatch = useDispatch();
   const token = useTokenValid();
   const [isSpecificationOpen, setIsSpecificationOpen] = useState(false);
@@ -287,7 +291,12 @@ export default function page() {
 
                 <div className="flex items-center gap-2 text-gray-600">
                   <Icon name="questionMark" size={14} />
-                  <span>{comments?.totalCount} вопросов</span>
+                  <Link
+                    href={`/mehsullar/${productId}/reyler`}
+                    className="hover:underline"
+                  >
+                    {comments?.totalCount} вопросов
+                  </Link>
                   <Icon name="right" size={14} />
                 </div>
               </div>
@@ -525,6 +534,7 @@ export default function page() {
           </div>
         </div>
       </div>
+
       <div className="space-y-8 lg:space-y-10">
         <ReviewsSection productID={productId} />
         <SmilarProduct productID={productId} />
@@ -537,6 +547,8 @@ export default function page() {
         setIsOpen={setIsSpecificationOpen}
         isOpen={isSpecificationOpen}
       />
+
+      {isShowShareModal && <ShareProductModal />}
     </main>
   );
 }

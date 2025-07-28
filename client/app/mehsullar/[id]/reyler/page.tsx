@@ -9,13 +9,19 @@ import { useParams } from 'next/navigation';
 import { FreeMode, Navigation } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { useInView } from 'react-intersection-observer';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Loading } from '@/components/ui/Loading';
 import { Error } from '@/components/ui/Error';
 import { Button } from '@/components/ui/Button';
+import { CommentModal } from '@/components/sections/CommentModal';
+import { getUserDisplayName } from '@/utils/userDisplayName';
 
 export default function Page() {
   const { id } = useParams();
+  const [selectComment, setSelectComment] = useState<IProductComment | null>(
+    null
+  );
+  const [isCommentModal, setIsCommentModal] = useState<boolean>(false);
 
   const commentId = Array.isArray(id) ? id[0] : id;
 
@@ -25,25 +31,34 @@ export default function Page() {
     enabled: !!commentId,
   });
 
-  const { data, status, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useInfiniteQuery({
-      queryKey: ['get/all/product/comment', commentId],
-      queryFn: ({ pageParam = 1 }) =>
-        productService.getProductByIdComment(commentId!, pageParam),
-      initialPageParam: 1,
-      getNextPageParam: (lastPage) => {
-        if (lastPage.success && lastPage.currentPage < lastPage.totalPages) {
-          return lastPage.currentPage + 1;
-        }
-        return undefined;
-      },
-    });
+  const {
+    data: comments,
+    status,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['get/all/product/comment', commentId],
+    queryFn: ({ pageParam = 1 }) =>
+      productService.getProductByIdComment(commentId!, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.success && lastPage.currentPage < lastPage.totalPages) {
+        return lastPage.currentPage + 1;
+      }
+      return undefined;
+    },
+  });
 
   const { ref, inView } = useInView();
 
-  const allComments = data?.pages.flatMap((page) => page.data) || [];
-  const ratingsData = data?.pages[0]?.ratings;
-  const allImages = allComments.flatMap((c) => c.images);
+  const allComments = comments?.pages.flatMap((page) => page.data) || [];
+  const filterComment = allComments.filter(
+    (c) => c.comment.length > 0 && c.comment.trim() !== ''
+  );
+
+  const ratingsData = comments?.pages[0]?.ratings;
+  const allImages = filterComment.flatMap((c) => c.images);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -64,21 +79,17 @@ export default function Page() {
     }
   };
 
-  const getUserDisplayName = (user: any) => {
-    if (user.name) {
-      return user.name;
-    }
-    if (user.phoneNumber) {
-      return `Kullanıcı ${user.phoneNumber.slice(-4)}`;
-    }
-    return 'Anonim Kullanıcı';
-  };
-
   const getUserAvatarLetter = (user: any) => {
     if (user.name) {
       return user.name.charAt(0).toUpperCase();
     }
     return 'K';
+  };
+
+  const handleSelectComment = (comment: IProductComment) => {
+    setSelectComment(comment);
+    setIsCommentModal(true);
+    console.log('comment selected:', comment);
   };
 
   useEffect(() => {
@@ -100,19 +111,15 @@ export default function Page() {
       />
 
       <div className="max-w-[1504px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Main Content */}
         <div className="flex flex-col xl:flex-row gap-8 mt-10">
-          {/* Reviews Section */}
           <div className="flex-1 xl:w-3/4">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* Reviews Header */}
               <div className="p-6 border-b border-gray-100">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Tüm Yorumlar{' '}
-                  {data?.pages[0]?.totalCount &&
-                    `(${data.pages[0].totalCount})`}
+                <h2 className="text-xl font-bold text-gray-900 mb-6">
+                  Все комментарии{' '}
+                  {comments?.pages[0]?.totalCount &&
+                    `(${comments.pages[0].totalCount})`}
                 </h2>
-                {/* Image Gallery */}
                 <div className="relative">
                   <Swiper
                     modules={[Navigation, FreeMode]}
@@ -168,19 +175,17 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Reviews List */}
               <div className="divide-y divide-gray-100">
-                {allComments.length === 0 ? (
+                {filterComment.length === 0 ? (
                   <div className="p-6 text-center text-gray-500">
                     Henüz yorum yapılmamış.
                   </div>
                 ) : (
-                  allComments.map((comment) => (
+                  filterComment.map((comment) => (
                     <div
                       key={comment.id}
                       className="p-6 hover:bg-gray-50/50 transition-colors duration-200"
                     >
-                      {/* User Header */}
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
@@ -211,7 +216,6 @@ export default function Page() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          {/* Star Rating */}
                           <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
@@ -232,21 +236,18 @@ export default function Page() {
                           </button>
                         </div>
                       </div>
-
-                      {/* Review Content */}
                       <div className="mb-4 pl-0 sm:pl-15">
                         <p className="text-gray-700 leading-relaxed">
                           {comment.comment}
                         </p>
                       </div>
-
-                      {/* Product Images */}
                       {comment.images && comment.images.length > 0 && (
                         <div className="flex gap-3 pl-0 sm:pl-15">
                           {comment.images.map((image, idx) => (
                             <div
                               key={idx}
                               className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                              onClick={() => handleSelectComment(comment)}
                             >
                               <img
                                 src={image || '/placeholder.svg'}
@@ -261,7 +262,6 @@ export default function Page() {
                   ))
                 )}
 
-                {/* Infinite Scroll Trigger */}
                 {hasNextPage && (
                   <div ref={ref} className="p-6 flex justify-center">
                     {isFetchingNextPage ? (
@@ -277,7 +277,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="xl:w-1/4">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-40">
               <div className="text-center">
@@ -302,14 +301,13 @@ export default function Page() {
                   </div>
                 </div>
                 <p className="text-gray-500 text-sm mb-6">
-                  {data?.pages[0]?.totalCount || 0} yorum
+                  {comments?.pages[0]?.totalCount || 0} yorum
                 </p>
 
-                {/* Rating Breakdown */}
                 <div className="space-y-2 mb-6">
                   {[5, 4, 3, 2, 1].map((rating) => {
-                    const percentage = data?.pages[0]?.totalCount
-                      ? rating * 20 // Geçici olarak, gerçek dağılım verisi yoksa
+                    const percentage = comments?.pages[0]?.totalCount
+                      ? rating * 20
                       : 0;
 
                     return (
@@ -327,7 +325,8 @@ export default function Page() {
                         </div>
                         <span className="text-gray-500 text-xs w-8 text-right">
                           {Math.floor(
-                            (data?.pages[0]?.totalCount || 0) * (rating / 15)
+                            (comments?.pages[0]?.totalCount || 0) *
+                              (rating / 15)
                           )}
                         </span>
                       </div>
@@ -341,6 +340,12 @@ export default function Page() {
           </div>
         </div>
       </div>
+
+      <CommentModal
+        comment={selectComment}
+        isShowModal={isCommentModal}
+        close={() => setIsCommentModal(false)}
+      />
     </div>
   );
 }

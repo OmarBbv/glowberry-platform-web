@@ -25,6 +25,7 @@ import { wishlistService } from '@/services/wishlistService';
 import { useLocalStorageAll } from '@/hooks/useLocalStorageAll';
 import { useTokenValid } from '@/hooks/useTokenValid';
 import { handleLoginOpen } from '@/stores/slices/loginSlice';
+import Link from 'next/link';
 
 interface Props {
   product: IProduct;
@@ -83,9 +84,13 @@ export const QuickPreview = ({
 
   const handleRouterForProduct = () => {
     if (!product.id) return;
-    document.body.style.paddingRight = '';
     router.push(`/mehsullar/${product.id}`);
     document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+  };
+
+  const handleShowMore = () => {
+    setIsShowMore((prev) => !prev);
   };
 
   return (
@@ -97,7 +102,7 @@ export const QuickPreview = ({
         }`}
       ></div>
       <section
-        className={`max-w-[1000px] rounded-2xl overflow-hidden fixed top-1/2 -translate-y-1/2 z-[999] left-1/2 -translate-x-1/2 mx-auto w-full bg-white max-h-[600px] ${
+        className={`max-w-[1000px] rounded-2xl overflow-hidden fixed top-1/2 -translate-y-1/2 z-[999] left-1/2 -translate-x-1/2 mx-auto w-full bg-white max-h-[700px] ${
           isOpen ? 'flex' : 'hidden'
         }`}
       >
@@ -160,11 +165,18 @@ export const QuickPreview = ({
               color="#6c757d"
             />
           </button>
-          {/* header */}
+          {/* header  */}
           <div className="sticky left-0 w-full top-0 px-8 pt-8 pb-2">
-            <p className="text-[25px] line-clamp-1 font-semibold tracking-wide">
+            <Link
+              onClick={() => (
+                (document.body.style.paddingRight = ''),
+                (document.body.style.overflow = 'visible')
+              )}
+              href={`/mehsullar/${product.id}`}
+              className={`text-[25px] line-clamp-1 font-semibold tracking-wide hover:underline hover:text-violet-custom`}
+            >
               {product.title}
-            </p>
+            </Link>
             <div className="flex items-center gap-1 text-sm font-medium">
               <div className="flex items-center gap-2">
                 <div className="flex items-center">
@@ -231,12 +243,14 @@ export const QuickPreview = ({
                 <span className={!isShowMore ? 'line-clamp-2' : ''}>
                   {product.description}
                 </span>
-                <button
-                  onClick={() => setIsShowMore((prev) => !prev)}
-                  className="font-medium text-xs text-primary self-end cursor-pointer hover:underline"
-                >
-                  {isShowMore ? 'Скрыть' : 'Показать больше'}
-                </button>
+                {product.description && product.description.length > 100 && (
+                  <button
+                    onClick={handleShowMore}
+                    className="font-medium text-xs text-primary self-end cursor-pointer hover:underline"
+                  >
+                    {isShowMore ? 'Скрыть' : 'Показать больше'}
+                  </button>
+                )}
               </div>
             </div>
 
