@@ -7,14 +7,14 @@ const router = express.Router();
 
 router.post('/create',
     authenticateMiddleware.seller,
-    ...multipleImageUpload('images', 20, { quality: 80, maxWidth: 1800, maxHeight: 1800 }),
+    ...multipleImageUpload('images', 20, { quality: 80, maxWidth: 1200, maxHeight: 1200 }),
     handleUploadErrors,
     sellerController.createProduct
 );
 
 router.put('/product/:id',
     authenticateMiddleware.seller,
-    ...multipleImageUpload('images', 20, { quality: 80, maxWidth: 1800, maxHeight: 1800 }),
+    ...multipleImageUpload('images', 20, { quality: 80, maxWidth: 1200, maxHeight: 1200 }),
     handleUploadErrors,
     sellerController.updateProductById
 );

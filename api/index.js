@@ -12,9 +12,11 @@ import wishlistRouter from './routers/wishlistRouter.js';
 import cartRouter from './routers/cartRouter.js';
 import categoryRouter from './routers/categoryRouter.js';
 import productCommentRouter from './routers/productCommentRouter.js';
+import productPromotionRouter from './routers/productPromotionRouter.js';
 
 import { seedCategories } from "./seeds/categorySeeds.js";
 import { setupRelations } from "./configs/relations.js";
+import schedulePromotionCleanup from "./utils/promotionCleanup.js";
 
 const app = express();
 
@@ -44,6 +46,7 @@ app.use('/api/v1/wishlist', wishlistRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/comments', productCommentRouter);
+app.use('/api/v1/promotion', productPromotionRouter);
 
 app.use('/uploads', express.static('uploads'));
 
@@ -52,6 +55,7 @@ async function startApp() {
         await connectDB();
         setupRelations();
         seedCategories();
+        schedulePromotionCleanup();
 
         app.listen(PORT, () => {
             console.log(`✅ Server ${PORT} portunda çalışıyor`);

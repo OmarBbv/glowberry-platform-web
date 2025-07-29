@@ -6,6 +6,7 @@ import WishListSchema from "../models/wishlistModel.js";
 import CartSchema from "../models/cartModel.js";
 import SellerRatingSchema from "../models/SellerRatings.js";
 import ProductCommentSchema from "../models/productCommentModel.js";
+import ProductPromotionSchema from "../models/productPromotionModel.js";
 
 export function setupRelations() {
     // Product & Seller
@@ -115,6 +116,29 @@ export function setupRelations() {
     UserSchema.hasMany(ProductCommentSchema, {
         foreignKey: 'user_id',
         as: 'comments'
+    });
+
+
+    // Product & ProductPromotion
+    ProductSchema.hasMany(ProductPromotionSchema, {
+        foreignKey: "product_id",
+        as: "promotions",
+        onDelete: "CASCADE"
+    });
+
+    ProductPromotionSchema.belongsTo(ProductSchema, {
+        foreignKey: "product_id",
+        as: "product",
+    });
+
+    // ProductPromotion -> Seller
+    ProductPromotionSchema.belongsTo(SellerSchema, {
+        foreignKey: "seller_id",
+        as: "seller"
+    });
+    SellerSchema.hasMany(ProductPromotionSchema, {
+        foreignKey: "seller_id",
+        as: "promotions"
     });
 
 }

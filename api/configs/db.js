@@ -11,7 +11,7 @@ const connectDB = async () => {
         await sequelize.authenticate();
         console.log("✅ PostgreSQL bağlantısı başarılı!");
 
-        await sequelize.sync({ alter: true }); // Geliştirme ortamı için uygun
+        await sequelize.sync({ alter: true });
         // await sequelize.sync({ force: true });
 
         console.log("✅ Veritabanı tabloları oluşturuldu veya güncellendi");

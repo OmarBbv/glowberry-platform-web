@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '../ui/Icon';
 import { Button } from '../ui/Button';
 import { useHoverEffect } from '@/hooks/ui/useHoverEffect';
-import Link from 'next/link';
 
 interface Props {
   image: string;
@@ -90,7 +89,7 @@ export const ProductHeader = ({
             <div className="space-y-1">
               <button
                 onClick={() => router.back()}
-                className="text-sm font-medium text-gray-900 line-clamp-2 hover:text-purple-custom hover:underline"
+                className="text-sm font-medium text-gray-900 line-clamp-2 hover:text-purple-custom hover:underline cursor-pointer"
               >
                 {productTitle}
               </button>

@@ -57,7 +57,7 @@ const authenticateMiddleware = {
         } catch (error) {
             return res.status(401).json({ message: 'Token etibarsızdır.' });
         }
-    }
+    },
 };
 
 export default authenticateMiddleware;

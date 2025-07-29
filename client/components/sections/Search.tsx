@@ -65,6 +65,7 @@ export const Search = () => {
     }
 
     const title = searchParams.get('basliq');
+
     if (title) {
       router.push(`/axtaris?basliq=${data.inputValue}`);
       return;

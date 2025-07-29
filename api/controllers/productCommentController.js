@@ -10,12 +10,6 @@ const productCommentController = {
             const { product_id, rating, comment } = req.body;
             const user = req.user;
 
-            console.log("➡️ Yorum oluşturma isteği geldi:");
-            console.log("product_id:", product_id);
-            console.log("rating:", rating);
-            console.log("comment:", comment);
-            console.log("user:", user);
-
             if (!user) {
                 console.warn("⚠️ Kullanıcı bulunamadı");
                 return res.status(400).json({
@@ -66,7 +60,7 @@ const productCommentController = {
             });
         }
     }),
-    
+
     getAllComment: asyncHandler(async (req, res) => {
         try {
             const page = parseInt(req.query.page) || 1;
@@ -166,7 +160,7 @@ const productCommentController = {
             const { id } = req.params;
             const existingComment = await ProductCommentSchema.findByPk(id);
 
-            if (!existingComment) return res.status(400).json({
+            if (!existingComment) return res.status(404).json({
                 success: false,
                 message: 'Bele bir serh movcud deyil',
             })
