@@ -19,6 +19,8 @@ import { handleLoginOpen } from '@/stores/slices/loginSlice';
 import { formatDate } from '@/utils/formatDate';
 import { useLocalStorageAll } from '@/hooks/auth/useLocalStorageAll';
 import { useScrollWidth } from '@/hooks/device/useScrollWidth';
+import { ProtectedRoute } from '../auth/ProtectedRoute';
+import toast from 'react-hot-toast';
 
 interface Props {
   product: IProduct;
@@ -75,6 +77,10 @@ export default function ProductCard({
     if (role === 'USER') {
       mutate(String(product.id));
       setLocalIsInWishlist(!localIsInWishlist);
+    } else {
+      toast.error(
+        'Bu işlem için giriş yapmanız veya kullanıcı olmanız gerekmektedir.'
+      );
     }
   };
 
