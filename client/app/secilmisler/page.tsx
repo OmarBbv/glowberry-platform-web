@@ -2,7 +2,7 @@
 
 import type React from 'react';
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Trash2, ShoppingCart, Star } from 'lucide-react';

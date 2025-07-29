@@ -3,9 +3,7 @@
 import CreateProduct from '@/components/sections/CreateProduct';
 import { SellerCompleteForm } from '@/components/sections/SellerCompleteForm';
 import { Button } from '@/components/ui/Button';
-import { productService } from '@/services/productService';
-import { RootState } from '@/stores/store';
-import { useQuery } from '@tanstack/react-query';
+import { useSellerProduct } from '@/hooks/data/useProduct';
 import {
   Edit3,
   Plus,
@@ -24,10 +22,7 @@ export default function page() {
   const [isOpen, setisOpen] = useState(false);
   const [index, setIndex] = useState(0);
 
-  const { data } = useQuery({
-    queryKey: ['get seller products', index],
-    queryFn: async () => await productService.getProductsBySeller(),
-  });
+  const { data } = useSellerProduct({ index });
 
   const handleComplatedToggle = () => setisOpen((prev) => !prev);
 

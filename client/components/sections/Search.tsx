@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { productService } from '@/services/productService';
 import { set, useForm } from 'react-hook-form';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useProductSearch } from '@/hooks/data/useProduct';
 
 type FormValues = {
   inputValue: string;
@@ -26,10 +27,9 @@ export const Search = () => {
 
   const inputValue = watch('inputValue');
 
-  const { data, refetch, isFetching } = useQuery({
-    queryKey: ['/get/search/products', inputValue],
-    queryFn: () => productService.getProductSearch(inputValue),
+  const { data, isFetching, refetch } = useProductSearch({
     enabled: false,
+    inputValue,
   });
 
   const searchProduct = data?.data;

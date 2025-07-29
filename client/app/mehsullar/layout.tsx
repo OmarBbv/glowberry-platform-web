@@ -1,4 +1,4 @@
-import { BottomNavigation } from '@/components/layout/BottomNavigation';
+// import { BottomNavigation } from '@/components/layout/BottomNavigation';
 import { ProductActions } from '@/components/layout/ProductActions';
 import React from 'react';
 

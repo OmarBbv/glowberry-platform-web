@@ -72,9 +72,7 @@ export function LoginStep2() {
     }
   };
 
-  const handleResendCode = () => {
-    resendOtpMutate({ phoneNumber, isSeller });
-  };
+  const handleResendCode = () => resendOtpMutate({ phoneNumber, isSeller });
 
   return (
     <div

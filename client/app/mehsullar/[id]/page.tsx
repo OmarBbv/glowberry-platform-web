@@ -5,9 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { ReviewsSection } from '@/components/sections/ReviewsSection';
-import ProductGrid from '@/components/sections/ProductGrid';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { productService } from '@/services/productService';
+import { useMutation } from '@tanstack/react-query';
 import { Loading } from '@/components/ui/Loading';
 import { Error } from '@/components/ui/Error';
 import { useState, useEffect, useMemo } from 'react';
@@ -30,9 +28,15 @@ import { RootState } from '@/stores/store';
 import { ShareProductModal } from '@/components/common/ShareProductModal';
 import Link from 'next/link';
 import { useImageHoverZoom } from '@/hooks/ui/useImageHoverZoom';
+import { useProductById } from '@/hooks/data/useProduct';
+import { useCommentsByProductId } from '@/hooks/data/useComment';
+import { useAllWishlist } from '@/hooks/data/useWishlist';
 
 export default function page() {
   const { id } = useParams();
+
+  const safeId = Array.isArray(id) ? id[0] : id;
+
   if (!id) return null;
 
   const scroll = useScrollWidth();
@@ -51,26 +55,19 @@ export default function page() {
   const [isWish, setIsWish] = useState(false);
   const { role } = useLocalStorageAll();
 
-  const {
-    data: product,
-    isLoading,
-    isError,
-  } = useQuery<IProduct>({
-    queryKey: ['get/byId/products'],
-    queryFn: () => productService.getProductById(productId),
-    enabled: !!id,
+  const { isError, isLoading, product } = useProductById({
+    id: safeId!,
+    productId,
   });
 
-  const { data: comments } = useQuery({
-    queryKey: ['get/by/comment'],
-    queryFn: () => productService.getProductByIdComment(productId),
+  const { comments } = useCommentsByProductId({
+    productId,
+    enabled: !!safeId,
   });
 
   const isWishlistEnabled = role === 'USER' && product !== undefined && token;
 
-  const { data: allWishlist, refetch: refetchWish } = useQuery({
-    queryKey: ['get/wish/all-data'],
-    queryFn: () => wishlistService.getAllWishlist(),
+  const { wishData, refetchWishlist } = useAllWishlist({
     enabled: !!isWishlistEnabled,
   });
 
@@ -104,7 +101,7 @@ export default function page() {
 
   const { mutate: wishMutate } = useMutation({
     mutationFn: (id: string) => wishlistService.addWishlist(id),
-    onSuccess: () => refetchWish(),
+    onSuccess: () => refetchWishlist(),
   });
 
   const handleToggleWishlist = (productId: string) => {
@@ -112,7 +109,7 @@ export default function page() {
     return;
   };
 
-  const allWish = allWishlist?.data.map((w) => w.product.id);
+  const allWish = wishData?.data.map((w) => w.product.id);
 
   const isWishData = useMemo(
     () => allWish?.includes(Number(productId)),

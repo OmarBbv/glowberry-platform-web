@@ -21,7 +21,6 @@ export default function SpecificationsAndDescription({
 
   return (
     <div>
-      {/* Overlay */}
       <div
         className={`fixed inset-0 h-screen bg-black/30 z-[999] transition-opacity duration-200 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -33,14 +32,12 @@ export default function SpecificationsAndDescription({
         }}
       />
 
-      {/* Sidebar */}
       <div
         className={`fixed top-0 right-0 z-[999] h-full bg-white shadow-lg transition-transform duration-500 flex flex-col ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ width: '520px' }}
       >
-        {/* Header */}
         <div className="flex justify-between items-center px-6 py-5 border-b border-gray-100">
           <h2 className="text-xl font-semibold text-gray-900">
             Характеристики и описание

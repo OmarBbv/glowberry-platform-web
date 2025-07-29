@@ -1,4 +1,3 @@
-import { Swiper, SwiperSlide } from 'swiper/react';
 import CustomSwiper from '../common/CustomSwiper';
 import { ReviewSwiper } from './ReviewSwiper';
 import { SellerRecommendation } from './SellerRecommendation';
@@ -6,21 +5,17 @@ import { useQuery } from '@tanstack/react-query';
 import { productService } from '@/services/productService';
 import { Loading } from '../ui/Loading';
 import { Error } from '../ui/Error';
-import { useState } from 'react';
 import Link from 'next/link';
+import { useCommentsByProductId } from '@/hooks/data/useComment';
 
 interface Props {
   productID: string;
 }
 
 export const ReviewsSection = ({ productID: id }: Props) => {
-  const {
-    data: comments,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ['get/product/comments', id],
-    queryFn: () => productService.getProductByIdComment(id),
+  const { comments, isLoading, isError } = useCommentsByProductId({
+    productId: id,
+    enabled: !!id,
   });
 
   const images = comments?.data.flatMap((img) => img.images);

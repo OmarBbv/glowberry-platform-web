@@ -24,6 +24,7 @@ import { wishlistService } from '@/services/wishlistService';
 import { useTokenValid } from '@/hooks/auth/useTokenValid';
 import { handleLoginOpen } from '@/stores/slices/loginSlice';
 import Link from 'next/link';
+import { useCommentsByProductId } from '@/hooks/data/useComment';
 
 interface Props {
   product: IProduct;
@@ -47,9 +48,8 @@ export const QuickPreview = ({
   const isProductInWishlist = isInWishlist?.(product.id) ?? false;
   const [isShowMore, setIsShowMore] = useState(false);
 
-  const { data: comments } = useQuery({
-    queryKey: ['get/product/comment/preview'],
-    queryFn: () => productService.getProductByIdComment(String(product.id)),
+  const { comments } = useCommentsByProductId({
+    productId: String(product.id),
     enabled: !!product.id,
   });
 

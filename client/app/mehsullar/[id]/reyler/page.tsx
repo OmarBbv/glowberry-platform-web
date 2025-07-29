@@ -2,7 +2,7 @@
 
 import { ProductHeader } from '@/components/common/ProductHeader';
 import { productService } from '@/services/productService';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { MoreHorizontal, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
@@ -15,6 +15,7 @@ import { Error } from '@/components/ui/Error';
 import { Button } from '@/components/ui/Button';
 import { CommentModal } from '@/components/sections/CommentModal';
 import { getUserDisplayName } from '@/utils/userDisplayName';
+import { useProductById } from '@/hooks/data/useProduct';
 
 export default function Page() {
   const { id } = useParams();
@@ -25,10 +26,9 @@ export default function Page() {
 
   const commentId = Array.isArray(id) ? id[0] : id;
 
-  const { data: productById } = useQuery({
-    queryKey: ['get/all/product/comment/page'],
-    queryFn: () => productService.getProductById(String(commentId)),
-    enabled: !!commentId,
+  const { product: productById } = useProductById({
+    id: id as string,
+    productId: String(commentId),
   });
 
   const {
