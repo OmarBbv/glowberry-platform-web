@@ -18,7 +18,6 @@ const sellerController = {
                 specifications
             } = req.body;
 
-            // Validation
             if (!title || !price || !category_id) {
                 return res.status(400).json({
                     success: false,
@@ -34,10 +33,8 @@ const sellerController = {
                 });
             }
 
-            // Yüklenen ve Sharp ile işlenmiş resimlerin dosya adlarını al
             const images = req.files ? req.files.map(file => file.filename) : [];
 
-            // Specifications'ı parse et
             let specificationsObj = {};
             if (specifications) {
                 try {
@@ -73,7 +70,6 @@ const sellerController = {
 
             const newProduct = await ProductSchema.create(productData);
 
-            // Response'da image URL'lerini formatla
             const productWithUrls = processModelImages(newProduct.toJSON(), ['images']);
 
             return res.status(201).json({
@@ -115,21 +111,17 @@ const sellerController = {
 
             const updateData = { ...req.body };
 
-            // Eğer yeni resimler yüklendiyse
             if (req.files && req.files.length > 0) {
                 const newImages = req.files.map(file => file.filename);
 
-                // Mevcut resimlerle birleştir veya değiştir
                 if (req.body.replaceImages === 'true') {
                     updateData.images = newImages;
                 } else {
-                    // Mevcut resimlere ekle
                     const existingImages = product.images || [];
                     updateData.images = [...existingImages, ...newImages];
                 }
             }
 
-            // Specifications'ı parse et
             if (updateData.specifications) {
                 try {
                     updateData.specifications = JSON.parse(updateData.specifications);
@@ -141,7 +133,6 @@ const sellerController = {
                 }
             }
 
-            // Numeric alanları parse et
             if (updateData.price) updateData.price = parseFloat(updateData.price);
             if (updateData.discounted_price) updateData.discounted_price = parseFloat(updateData.discounted_price);
             if (updateData.category_id) updateData.category_id = parseInt(updateData.category_id);
@@ -150,7 +141,6 @@ const sellerController = {
 
             const updatedProduct = await product.update(updateData);
 
-            // Response'da image URL'lerini formatla
             const productWithUrls = processModelImages(updatedProduct.toJSON(), ['images']);
 
             res.status(200).json({
@@ -263,7 +253,6 @@ const sellerController = {
                 return res.status(404).json({ message: "Bu satıcıya ait ürün bulunamadı." });
             }
 
-            // Response'da image URL'lerini formatla
             const productsWithUrls = products.map(product =>
                 processModelImages(product.toJSON(), ['images'])
             );
@@ -293,7 +282,6 @@ const sellerController = {
                 return res.status(404).json({ message: "Bu satıcıya ait ürün bulunamadı." });
             }
 
-            // Response'da image URL'lerini formatla
             const productWithUrls = processModelImages(product.toJSON(), ['images']);
 
             res.status(200).json({

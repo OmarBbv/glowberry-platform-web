@@ -32,7 +32,6 @@ const productController = {
                 return text.toLowerCase().replace(/[əöğçşıüƏÖĞÇŞÜİ]/g, char => map[char] || char);
             };
 
-            // Base filter conditions (category, price, stock)
             const buildBaseFilters = () => {
                 const conditions = [];
 
@@ -95,7 +94,6 @@ const productController = {
                 }
             };
 
-            // Öncelik bazlı arama fonksiyonu
             const performPrioritySearch = async (searchTerm, baseFilters) => {
                 const normalizedSearchTerm = normalizeText(searchTerm);
                 let allResults = [];
@@ -107,10 +105,8 @@ const productController = {
                             baseFilters,
                             {
                                 [Op.or]: [
-                                    // Tam eşleşme (case insensitive)
                                     Sequelize.literal(`LOWER(title) = LOWER('${searchTerm.replace(/'/g, "''")}')`),
                                     Sequelize.literal(`LOWER("companyName") = LOWER('${searchTerm.replace(/'/g, "''")}')`),
-                                    // Normalized tam eşleşme
                                     Sequelize.literal(`LOWER(title) = LOWER('${normalizedSearchTerm.replace(/'/g, "''")}')`),
                                     Sequelize.literal(`LOWER("companyName") = LOWER('${normalizedSearchTerm.replace(/'/g, "''")}')`),
                                 ]
@@ -134,7 +130,6 @@ const productController = {
                     searchMethods.push('exact_match');
                 }
 
-                // 2. BAŞLANGIC EŞLEŞMELERİ - Yüksek öncelik
                 if (!strictMode || exactMatches.length === 0) {
                     const startMatches = await ProductSchema.findAll({
                         where: {
@@ -148,7 +143,6 @@ const productController = {
                                         { companyName: { [Op.iLike]: `${normalizedSearchTerm}%` } },
                                     ]
                                 },
-                                // Tam eşleşmeleri hariç tut
                                 {
                                     [Op.not]: {
                                         [Op.or]: [
@@ -177,10 +171,8 @@ const productController = {
                     }
                 }
 
-                // 3. FUSE.JS AKILLI ARAMA - Orta öncelik
                 if (!strictMode || (exactMatches.length === 0 && allResults.length < 5)) {
 
-                    // Önceki sonuçlarda bulunmayan ürünleri al
                     const excludeIds = allResults.flatMap(r => r.results.map(item => item.item.id));
 
                     const remainingProducts = await ProductSchema.findAll({
@@ -199,7 +191,6 @@ const productController = {
                     });
 
                     if (remainingProducts.length > 0) {
-                        // Fuse.js için ürünleri hazırla
                         const processedProducts = remainingProducts.map(product => {
                             const productJson = product.toJSON();
                             return {
@@ -212,7 +203,6 @@ const productController = {
                             };
                         });
 
-                        // Katı mod için daha düşük threshold
                         const fuseThreshold = strictMode ? Math.min(threshold, 0.4) : threshold;
 
                         const fuseOptions = {
@@ -246,20 +236,16 @@ const productController = {
 
                         const fuse = new Fuse(processedProducts, fuseOptions);
 
-                        // Çoklu arama stratejisi
                         let fuseResults = [];
 
-                        // Ana arama
                         const mainSearch = fuse.search(searchTerm.trim());
                         fuseResults.push(...mainSearch);
 
-                        // Normalize edilmiş arama (farklıysa)
                         if (normalizedSearchTerm !== searchTerm.toLowerCase()) {
                             const normalizedSearch = fuse.search(normalizedSearchTerm);
                             fuseResults.push(...normalizedSearch);
                         }
 
-                        // Sonuçları birleştir ve sırala
                         const uniqueFuseResults = new Map();
                         fuseResults.forEach(result => {
                             const id = result.item.id;
@@ -282,7 +268,6 @@ const productController = {
                     }
                 }
 
-                // 4. GENİŞ ARAMA - En düşük öncelik (sadece strict mode değilse)
                 if (!strictMode && allResults.flatMap(r => r.results).length < limit) {
 
                     const excludeIds = allResults.flatMap(r => r.results.map(item => item.item.id));
@@ -300,7 +285,6 @@ const productController = {
                                             { companyName: { [Op.iLike]: `%${searchTerm}%` } },
                                             { description: { [Op.iLike]: `%${searchTerm}%` } },
                                             { '$Category.name$': { [Op.iLike]: `%${searchTerm}%` } },
-                                            // Kelime bazlı arama
                                             ...words.map(word => ({
                                                 [Op.or]: [
                                                     { title: { [Op.iLike]: `%${word}%` } },
@@ -317,7 +301,7 @@ const productController = {
                                 required: false,
                                 attributes: ['id', 'name', 'slug']
                             }],
-                            limit: limit * 2 // Fazladan al, sonra sıralarız
+                            limit: limit * 2
                         });
 
                         if (broadMatches.length > 0) {
@@ -346,7 +330,6 @@ const productController = {
 
                 usedMethods = searchMethods;
 
-                // Tüm sonuçları öncelik sırasına göre birleştir
                 let combinedResults = [];
 
                 allResults
@@ -357,7 +340,6 @@ const productController = {
 
                 totalCount = combinedResults.length;
 
-                // Sıralama uygula (relevance hariç)
                 if (sortBy !== 'relevance') {
                     combinedResults = combinedResults.sort((a, b) => {
                         const itemA = a.item;
@@ -369,16 +351,14 @@ const productController = {
                             return sortBy === 'price_asc' ? priceA - priceB : priceB - priceA;
                         } else if (sortBy === 'popular') {
                             return itemB.views - itemA.views;
-                        } else { // newest
+                        } else {
                             return new Date(itemB.createdAt) - new Date(itemA.createdAt);
                         }
                     });
                 }
 
-                // Pagination uygula
                 const paginatedResults = combinedResults.slice(offset, offset + limit);
 
-                // Sonuçları formatla
                 finalProducts = paginatedResults.map(result => ({
                     ...result.item,
                     images: formatImageUrls(result.item.images),
@@ -394,7 +374,6 @@ const productController = {
                 searchMethod = 'priority_search';
 
             } else {
-                // Geleneksel database araması (değişmez)
 
                 const buildSearchConditions = (searchTerm) => {
                     if (!searchTerm) return {};
@@ -610,10 +589,8 @@ const productController = {
             const calculateSimilarityScore = (targetProduct) => {
                 let score = 0;
 
-                // Kategori benzerliği (40 puan)
                 if (targetProduct.category_id === product.category_id) score += 40;
 
-                // Fiyat benzerliği (25 puan)
                 const priceDiff = Math.abs(parseFloat(targetProduct.price) - parseFloat(product.price));
                 const priceRatio = priceDiff / parseFloat(product.price);
                 if (priceRatio <= 0.1) score += 25;
@@ -622,10 +599,8 @@ const productController = {
                 else if (priceRatio <= 1.0) score += 10;
                 else if (priceRatio <= 2.0) score += 5;
 
-                // Marka benzerliği (20 puan)
                 if (targetProduct.companyName === product.companyName) score += 20;
 
-                // Teknik özellikler (15 puan)
                 if (product.specifications && targetProduct.specifications) {
                     const prodSpecs = product.specifications;
                     const targetSpecs = targetProduct.specifications;
@@ -646,7 +621,6 @@ const productController = {
                     }
                 }
 
-                // Popülerlik bonusu
                 if (targetProduct.views > 100) score += 3;
                 else if (targetProduct.views > 50) score += 2;
                 else if (targetProduct.views > 10) score += 1;
@@ -654,14 +628,13 @@ const productController = {
                 return score;
             };
 
-            // Aday ürünleri al
             const sameCategory = await ProductSchema.findAll({
                 where: {
                     id: { [Op.ne]: product.id },
                     category_id: product.category_id
                 },
                 order: [['views', 'DESC']],
-                limit: 50 // Daha fazla çek, sonra filtrele
+                limit: 50
             });
 
             const otherCategories = await ProductSchema.findAll({
@@ -684,14 +657,12 @@ const productController = {
                 limit: 50
             });
 
-            // Skorlama
             const allCandidates = [...sameCategory, ...otherCategories];
             const scoredProducts = allCandidates.map(candidate => ({
                 product: candidate,
                 score: calculateSimilarityScore(candidate)
             }));
 
-            // Sıralama
             const sortedProducts = scoredProducts
                 .filter(item => item.score > 0)
                 .sort((a, b) => {
@@ -699,9 +670,8 @@ const productController = {
                     return b.product.views - a.product.views;
                 });
 
-            // Yetersizse popüler ürünlerle tamamla
             let finalProducts = [...sortedProducts];
-            if (finalProducts.length < limit * 2) { // Daha fazla veri için
+            if (finalProducts.length < limit * 2) {
                 const needed = limit * 3 - finalProducts.length;
                 const usedIds = [product.id, ...finalProducts.map(item => item.product.id)];
 
@@ -713,16 +683,14 @@ const productController = {
                     limit: needed
                 });
 
-                // Popüler ürünleri de skorla
                 const popularScored = randomPopular.map(popular => ({
                     product: popular,
-                    score: 1 // Minimum skor
+                    score: 1
                 }));
 
                 finalProducts.push(...popularScored);
             }
 
-            // Pagination uygula
             const totalFound = finalProducts.length;
             const totalPages = Math.ceil(totalFound / limit);
             const pagedProducts = finalProducts
@@ -766,7 +734,6 @@ const productController = {
     getSimilarProductsBySeller: asyncHandler(async (req, res) => {
         const { id } = req.params;
 
-        // Pagination parametreleri
         const page = parseInt(req.query.page) || 1;
         const limit = 15;
         const offset = (page - 1) * limit;
@@ -797,46 +764,39 @@ const productController = {
             const calculateSellerSimilarityScore = (targetProduct) => {
                 let score = 0;
 
-                // 1. Aynı kategori (50 puan)
                 if (targetProduct.category_id === product.category_id) {
                     score += 50;
                 }
 
-                // 2. Benzer fiyat aralığı (30 puan)
                 const priceDiff = Math.abs(parseFloat(targetProduct.price) - parseFloat(product.price));
                 const priceRatio = priceDiff / parseFloat(product.price);
 
-                if (priceRatio <= 0.15) score += 30;      // %15 fark - tam puan
-                else if (priceRatio <= 0.3) score += 25;  // %30 fark
-                else if (priceRatio <= 0.5) score += 20;  // %50 fark
-                else if (priceRatio <= 1.0) score += 15;  // %100 fark
-                else if (priceRatio <= 2.0) score += 10;  // %200 fark
+                if (priceRatio <= 0.15) score += 30;
+                else if (priceRatio <= 0.3) score += 25;
+                else if (priceRatio <= 0.5) score += 20;
+                else if (priceRatio <= 1.0) score += 15;
+                else if (priceRatio <= 2.0) score += 10;
 
-                // 3. Specifications benzerliği (20 puan)
                 if (product.specifications && targetProduct.specifications) {
                     const prodSpecs = product.specifications;
                     const targetSpecs = targetProduct.specifications;
 
-                    // Renk eşleşmesi (8 puan)
                     if (prodSpecs.color && targetSpecs.color &&
                         prodSpecs.color.toLowerCase() === targetSpecs.color.toLowerCase()) {
                         score += 8;
                     }
 
-                    // Tip/tür eşleşmesi (7 puan)
                     if (prodSpecs.type && targetSpecs.type &&
                         prodSpecs.type.toLowerCase() === targetSpecs.type.toLowerCase()) {
                         score += 7;
                     }
 
-                    // Marka ülkesi eşleşmesi (5 puan)
                     if (prodSpecs.brandCountry && targetSpecs.brandCountry &&
                         prodSpecs.brandCountry.toLowerCase() === targetSpecs.brandCountry.toLowerCase()) {
                         score += 5;
                     }
                 }
 
-                // 4. Popülerlik bonusu (views'e göre ek puan)
                 if (targetProduct.views > 100) score += 5;
                 else if (targetProduct.views > 50) score += 3;
                 else if (targetProduct.views > 20) score += 2;
@@ -845,7 +805,6 @@ const productController = {
                 return score;
             };
 
-            // 1. ADIM: Aynı satıcının tüm ürünlerini al (mevcut ürün hariç)
             const sellerProducts = await ProductSchema.findAll({
                 where: {
                     seller_id: product.seller_id,
@@ -855,7 +814,6 @@ const productController = {
                     ['views', 'DESC'],
                     ['createdAt', 'DESC']
                 ]
-                // Tüm ürünleri al, sonra skorlayıp sıralayacağız
             });
 
             if (sellerProducts.length === 0) {
@@ -876,32 +834,27 @@ const productController = {
                 });
             }
 
-            // 2. ADIM: Ürünleri skorla ve sırala
             const scoredProducts = sellerProducts.map(sellerProduct => ({
                 product: sellerProduct,
                 score: calculateSellerSimilarityScore(sellerProduct)
             }));
 
-            // 3. ADIM: Skorlara göre sırala (en iyiler ilk sırada)
             const sortedProducts = scoredProducts
                 .sort((a, b) => {
                     if (b.score !== a.score) return b.score - a.score;
-                    return b.product.views - a.product.views; // Eşit skorlarda popülerliğe bak
+                    return b.product.views - a.product.views;
                 })
                 .map(item => item.product);
 
-            // 4. ADIM: Pagination uygula
             const totalProducts = sortedProducts.length;
             const totalPages = Math.ceil(totalProducts / limit);
             const paginatedProducts = sortedProducts.slice(offset, offset + limit);
 
-            // 5. ADIM: Sonuçları formatla
             const formattedProducts = paginatedProducts.map(product => ({
                 ...product.toJSON(),
                 images: product.images ? formatImageUrls(product.images) : []
             }));
 
-            // 6. ADIM: Satıcının toplam ürün sayısını hesapla
             const totalSellerProducts = await ProductSchema.count({
                 where: { seller_id: product.seller_id }
             });
@@ -938,7 +891,6 @@ const productController = {
         } catch (error) {
             console.error("Satıcının benzer ürünleri getirilirken hata:", error);
 
-            // FALLBACK: Basit yaklaşım - sadece aynı satıcının popüler ürünleri
             try {
                 const page = parseInt(req.query.page) || 1;
                 const limit = 15;
@@ -1011,12 +963,10 @@ const productController = {
                 });
             }
 
-            // Sayfa ve limit değerlerini integer'a çevir
             const currentPage = parseInt(page);
             const itemsPerPage = parseInt(limit);
             const offset = (currentPage - 1) * itemsPerPage;
 
-            // Türkçe karakter normalizasyonu
             const normalizeText = (text) => {
                 if (!text) return "";
                 const turkishMap = {
@@ -1026,15 +976,12 @@ const productController = {
                 return text.toLowerCase().replace(/[əöğçşıüƏÖĞÇŞÜİ]/g, char => turkishMap[char] || char);
             };
 
-            // Arama terimini normalize et
             const normalizedQuery = normalizeText(q.trim());
 
-            // Önce tüm ürünleri getir ve normalize et
             const allProducts = await ProductSchema.findAll({
                 attributes: ['id', 'title', 'companyName', 'description'],
             });
 
-            // Ürünleri normalize edilmiş versiyonlarıyla birlikte hazırla
             const processedProducts = allProducts.map(product => {
                 const productJson = product.toJSON();
                 return {
@@ -1045,7 +992,6 @@ const productController = {
                 };
             });
 
-            // Gelişmiş Fuse.js konfigürasyonu
             const fuseOptions = {
                 threshold: parseFloat(threshold),
                 location: 0,
@@ -1083,23 +1029,18 @@ const productController = {
                 includeMatches: false,
             };
 
-            // Fuse instance oluştur
             const fuse = new Fuse(processedProducts, fuseOptions);
 
-            // Çoklu arama stratejisi
             let searchResults = [];
 
-            // 1. Ana arama - orijinal sorgu
             const mainSearch = fuse.search(q.trim());
             searchResults.push(...mainSearch);
 
-            // 2. Normalize edilmiş arama
             if (normalizedQuery !== q.trim().toLowerCase()) {
                 const normalizedSearch = fuse.search(normalizedQuery);
                 searchResults.push(...normalizedSearch);
             }
 
-            // 3. Kelime bazlı arama (birden fazla kelime varsa)
             const words = q.trim().split(/\s+/);
             if (words.length > 1) {
                 words.forEach(word => {
@@ -1110,15 +1051,12 @@ const productController = {
                 });
             }
 
-            // 4. Fuzzy pattern arama (özel karakterler için)
             if (q.length >= 3) {
-                // Levenshtein benzeri pattern
                 const fuzzyPattern = q.split('').join('.*');
                 const fuzzySearch = fuse.search(`'${fuzzyPattern}`);
                 searchResults.push(...fuzzySearch);
             }
 
-            // Sonuçları birleştir ve sırala
             const uniqueResults = new Map();
 
             searchResults.forEach(result => {
@@ -1128,18 +1066,14 @@ const productController = {
                 }
             });
 
-            // Tüm sonuçları sırala (pagination öncesi)
             const allResults = Array.from(uniqueResults.values())
-                .sort((a, b) => a.score - b.score); // Düşük skor = daha iyi eşleşme
+                .sort((a, b) => a.score - b.score);
 
-            // Toplam sonuç sayısı
             const totalResults = allResults.length;
             const totalPages = Math.ceil(totalResults / itemsPerPage);
 
-            // Pagination uygula
             const paginatedResults = allResults.slice(offset, offset + itemsPerPage);
 
-            // Sonuçları formatla
             const formattedResults = paginatedResults.map(result => ({
                 id: result.item.id,
                 title: result.item.title,
@@ -1153,14 +1087,11 @@ const productController = {
                 }))
             }));
 
-            // Fallback: Eğer hiç sonuç yoksa, SQL araması yap
             let finalResults = formattedResults;
             let totalFallbackResults = 0;
             let totalFallbackPages = 0;
 
             if (allResults.length === 0) {
-
-                // Daha geniş SQL araması
                 const sqlSearchTerms = [
                     q.trim(),
                     normalizedQuery,
@@ -1173,7 +1104,6 @@ const productController = {
                     { description: { [Op.iLike]: `%${term}%` } }
                 ]);
 
-                // Önce toplam sayıyı al
                 const totalCount = await ProductSchema.count({
                     where: { [Op.or]: sqlConditions }
                 });
@@ -1181,7 +1111,6 @@ const productController = {
                 totalFallbackResults = totalCount;
                 totalFallbackPages = Math.ceil(totalCount / itemsPerPage);
 
-                // Paginated SQL results
                 const sqlResults = await ProductSchema.findAll({
                     where: { [Op.or]: sqlConditions },
                     attributes: ['id', 'title', 'companyName', 'description'],
@@ -1253,7 +1182,6 @@ const productController = {
                 });
             }
 
-            // Türkçe karakter normalizasyonu (aynı fonksiyon)
             const normalizeText = (text) => {
                 if (!text) return "";
                 const turkishMap = {
@@ -1265,13 +1193,11 @@ const productController = {
 
             const normalizedQuery = normalizeText(q.trim());
 
-            // Daha fazla veri al (öneriler için)
             const products = await ProductSchema.findAll({
                 attributes: ['title', 'companyName'],
-                limit: 500 // Daha iyi öneriler için daha fazla data
+                limit: 500
             });
 
-            // Ürünleri normalize et
             const processedProducts = products.map(product => {
                 const productJson = product.toJSON();
                 return {
@@ -1281,9 +1207,8 @@ const productController = {
                 };
             });
 
-            // Öneri odaklı Fuse konfigürasyonu
             const fuseOptions = {
-                threshold: 0.5, // Öneriler için biraz daha toleranslı
+                threshold: 0.5,
                 location: 0,
                 distance: 500,
                 minMatchCharLength: 1,
@@ -1311,26 +1236,21 @@ const productController = {
 
             const fuse = new Fuse(processedProducts, fuseOptions);
 
-            // Çoklu öneri stratejisi
             let allSuggestions = [];
 
-            // 1. Orijinal arama
             const mainSuggestions = fuse.search(q.trim());
             allSuggestions.push(...mainSuggestions);
 
-            // 2. Normalize edilmiş arama
             if (normalizedQuery !== q.trim().toLowerCase()) {
                 const normalizedSuggestions = fuse.search(normalizedQuery);
                 allSuggestions.push(...normalizedSuggestions);
             }
 
-            // 3. Prefix arama (başlangıç karakterleri)
             if (q.length >= 2) {
                 const prefixSuggestions = fuse.search(`^${q.trim()}`);
                 allSuggestions.push(...prefixSuggestions);
             }
 
-            // Benzersiz önerileri al ve skorlarına göre sırala
             const uniqueSuggestions = new Map();
 
             allSuggestions.forEach(result => {
@@ -1346,7 +1266,6 @@ const productController = {
                 }
             });
 
-            // Şirket adlarını da öneriler arasına ekle
             allSuggestions.forEach(result => {
                 const companyName = result.item.companyName?.trim();
                 if (companyName && companyName.length > 0) {
@@ -1360,12 +1279,9 @@ const productController = {
                 }
             });
 
-            // En iyi önerileri seç
             const bestSuggestions = Array.from(uniqueSuggestions.values())
                 .sort((a, b) => {
-                    // Önce skora göre sırala
                     if (a.score !== b.score) return a.score - b.score;
-                    // Sonra uzunluğa göre (kısa önce)
                     return a.text.length - b.text.length;
                 })
                 .slice(0, parseInt(limit))

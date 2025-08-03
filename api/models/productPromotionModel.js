@@ -40,11 +40,11 @@ const ProductPromotionSchema = sequelize.define("ProductPromotion", {
         type: DataTypes.STRING,
         allowNull: true,
     },
-    duration_days: { // vip ve premium için (5, 15, 30 gibi)
+    duration_days: {
         type: DataTypes.INTEGER,
         allowNull: true,
     },
-    repeat_count: {  // sadece featured için (3,9,15,30 gibi)
+    repeat_count: {
         type: DataTypes.INTEGER,
         allowNull: true,
     },

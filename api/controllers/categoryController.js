@@ -11,7 +11,6 @@ const categoryController = {
         }
     }),
 
-    // GET /api/categories/:id -> Belirli bir kategoriyi getir
     getByIdCategory: asyncHandler(async (req, res) => {
         try {
             const { id } = req.params;

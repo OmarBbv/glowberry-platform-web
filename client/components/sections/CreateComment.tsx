@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { productService } from '@/services/productService';
 import { Dispatch, SetStateAction, useState } from 'react';
-import { useTokenValid } from '@/hooks/auth/useTokenValid';
 import { toast } from 'react-hot-toast';
 
 interface IFormValue {
@@ -57,10 +56,6 @@ export const CreateComment = ({ setCommentIsOpen, id }: Props) => {
     mutateAsync(payload);
   };
 
-  const token = useTokenValid();
-
-  console.log('token', token);
-
   return (
     <div className="fixed inset-0 h-dvh bg-black/20 flex items-center justify-center p-4 z-[999]">
       <form
@@ -93,11 +88,10 @@ export const CreateComment = ({ setCommentIsOpen, id }: Props) => {
                 className="p-1 transition-transform hover:scale-110"
               >
                 <svg
-                  className={`w-6 h-6 transition-colors ${
-                    star <= (hoveredRating || rating)
-                      ? 'text-amber-400'
-                      : 'text-gray-200'
-                  }`}
+                  className={`w-6 h-6 transition-colors ${star <= (hoveredRating || rating)
+                    ? 'text-amber-400'
+                    : 'text-gray-200'
+                    }`}
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >

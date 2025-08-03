@@ -19,12 +19,11 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const handleModalClose = () => {
-    close();
-  };
+  const handleModalClose = () => close();
 
   const handleNextImage = () =>
     setCurrentImageIndex((prev) => (prev + 1) % comment.images.length);
+
   const handlePrevImage = () =>
     setCurrentImageIndex(
       (prev) => (prev - 1 + comment.images.length) % comment.images.length
@@ -43,17 +42,14 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
 
   return (
     <>
-      {/* Backdrop */}
       <div
-        className={`${
-          isShowModal
-            ? 'bg-black/30 fixed inset-0 w-full h-full z-[95] transition-opacity duration-300'
-            : 'hidden'
-        }`}
+        className={`${isShowModal
+          ? 'bg-black/30 fixed inset-0 w-full h-full z-[95] transition-opacity duration-300'
+          : 'hidden'
+          }`}
         onClick={handleModalClose}
       />
 
-      {/* Modal */}
       <div
         className={
           isShowModal
@@ -62,7 +58,6 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
         }
       >
         <div className="w-[94%] h-full max-h-[95vh] bg-white shadow-2xl rounded-xl sm:rounded-2xl overflow-hidden flex flex-col lg:flex-row">
-          {/* Image Section */}
           <div className="relative lg:w-2/3 h-64 sm:h-80 lg:h-full">
             {comment.images && comment.images.length > 0 ? (
               <Swiper
@@ -99,7 +94,6 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
               </div>
             )}
 
-            {/* Navigation Buttons - Mobile & Desktop */}
             {comment.images && comment.images.length > 1 && (
               <>
                 <button
@@ -130,14 +124,12 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
               </>
             )}
 
-            {/* Image Counter */}
             {comment.images && comment.images.length > 1 && (
               <div className="absolute top-4 left-1/2 lg:bottom-4 lg:top-auto z-10 transform -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs sm:text-sm backdrop-blur-sm">
                 {currentImageIndex + 1} / {comment.images.length}
               </div>
             )}
 
-            {/* Close Button - Mobile (on image) */}
             <button
               onClick={handleModalClose}
               className="lg:hidden absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors z-20"
@@ -147,9 +139,7 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
             </button>
           </div>
 
-          {/* Content Section */}
           <div className="flex-1 lg:w-1/3 flex flex-col bg-white max-h-[60vh] lg:max-h-full">
-            {/* Header with close button - Desktop */}
             <div className="hidden lg:flex w-full justify-between items-center p-4 border-b border-gray-200">
               <h3 className="font-semibold text-lg">Yorum Detayları</h3>
               <button
@@ -161,7 +151,6 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
               </button>
             </div>
 
-            {/* Mobile Header */}
             <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="font-semibold text-lg">Yorum Detayları</h3>
               <button
@@ -173,10 +162,8 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
               </button>
             </div>
 
-            {/* Content Area */}
             <div className="flex-1 p-4 overflow-y-auto">
               <div className="space-y-4">
-                {/* User Info */}
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                     <Icon name="user" size={20} color="#666" />
@@ -196,7 +183,6 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
                   </div>
                 </div>
 
-                {/* Comment Text */}
                 <div className="space-y-2">
                   <p className="text-sm sm:text-base text-gray-800 leading-relaxed">
                     <span className="font-medium">Достоинства:</span>
@@ -204,7 +190,6 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
                   </p>
                 </div>
 
-                {/* Thumbnails */}
                 {comment.images && comment.images.length > 1 && (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-gray-700">
@@ -215,11 +200,10 @@ export const CommentModal = ({ comment, close, isShowModal }: Props) => {
                         <button
                           key={index}
                           onClick={() => setCurrentImageIndex(index)}
-                          className={`rounded-lg overflow-hidden border-2 transition-colors ${
-                            currentImageIndex === index
-                              ? 'border-blue-500'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
+                          className={`rounded-lg overflow-hidden border-2 transition-colors ${currentImageIndex === index
+                            ? 'border-blue-500'
+                            : 'border-gray-200 hover:border-gray-300'
+                            }`}
                         >
                           <Image
                             src={image}

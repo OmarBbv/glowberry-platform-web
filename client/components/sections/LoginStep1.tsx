@@ -38,8 +38,6 @@ export function LoginStep1() {
   });
 
   const onSubmit = (data: { phoneNumber: string; isSeller: boolean }) => {
-    console.log('Phone number:', data.phoneNumber);
-    console.log('seller:', data.isSeller);
     dispatch(setPhoneNumber(data.phoneNumber));
     mutate(data);
   };

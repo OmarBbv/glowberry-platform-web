@@ -15,7 +15,7 @@ const schedulePromotionCleanup = () => {
             });
 
             for (const promo of expiredPromotions) {
-                await promo.destroy(); // veya update yapabilirsin
+                await promo.destroy();
             }
 
             console.log(`${expiredPromotions.length} adet promosyon süresi doldu ve temizlendi.`);

@@ -8,8 +8,8 @@ export const sendOtp = async (to, otpCode) => {
     try {
         const message = await client.messages.create({
             body: `Giriş kodunuz: ${otpCode}`,
-            from: '+15074100523', // Twilio numaran buraya
-            to: to                // Kullanıcının numarası: +905xxxxxxxxx
+            from: '+15074100523',
+            to: to
         });
         console.log('OTP gönderildi:', message.sid);
     } catch (error) {

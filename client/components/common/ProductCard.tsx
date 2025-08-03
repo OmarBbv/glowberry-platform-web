@@ -105,11 +105,10 @@ export default function ProductCard({
           alt={product.title}
         />
         <button
-          className={`absolute cursor-pointer top-1 right-2 m-2 p-2 rounded-full transition-all duration-200 ${
-            localIsInWishlist
+          className={`absolute cursor-pointer top-1 right-2 m-2 p-2 rounded-full transition-all duration-200 ${localIsInWishlist
               ? 'bg-violet-custom text-white'
               : 'bg-white/50 hover:bg-white'
-          } ${isPending ? 'opacity-70' : ''}`}
+            } ${isPending ? 'opacity-70' : ''}`}
           onClick={handleWishList}
           disabled={isPending}
         >
@@ -135,7 +134,7 @@ export default function ProductCard({
             <BadgePercent size={18} />
             <span className="text-sm lg:text-lg font-bold">
               {product.discounted_price &&
-              parseFloat(product.discounted_price) > 0
+                parseFloat(product.discounted_price) > 0
                 ? product.discounted_price
                 : product.price}{' '}
               ₼
@@ -156,7 +155,7 @@ export default function ProductCard({
 
         {/* Product Name */}
         <div className="space-y-1 my-1">
-          <div className="font-semibold text-gray-900 text-sm lg:text-base">
+          <div className="font-semibold text-gray-900 text-sm lg:text-base line-clamp-1">
             {product.companyName}
           </div>
           <div className="text-gray-600 line-clamp-1 text-xs lg:text-sm">

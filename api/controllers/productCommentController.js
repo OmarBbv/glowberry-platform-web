@@ -113,12 +113,10 @@ const productCommentController = {
                 order: [['createdAt', 'DESC']]
             });
 
-            // Toplam yorum sayısını çek
             const totalComments = await ProductCommentSchema.count({
                 where: { product_id }
             });
 
-            // Ortalama puan ve toplam puan sayısını çek
             const ratingsData = await ProductCommentSchema.findAll({
                 where: { product_id },
                 attributes: [
@@ -130,7 +128,6 @@ const productCommentController = {
 
             const { averageRating, totalRatings } = ratingsData[0];
 
-            // NaN kontrolü - ortalama puan null ise 0.0 olarak dön
             const average = averageRating === null ? 0 : parseFloat(averageRating);
 
             return res.status(200).json({

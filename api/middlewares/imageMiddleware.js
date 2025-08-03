@@ -26,8 +26,8 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
-        files: 20 // Maksimum 20 file
+        fileSize: 10 * 1024 * 1024,
+        files: 20
     }
 });
 
@@ -81,7 +81,6 @@ const singleImageUpload = (fieldName = 'image', options = {}) => {
                     maxHeight
                 );
 
-                // Dosya bilgilerini req.file'a ekle
                 req.file.filename = result.filename;
                 req.file.path = result.path;
                 req.file.size = result.size;

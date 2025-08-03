@@ -2,7 +2,6 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// Eski sistem (geriye uyumluluk için saklanıyor)
 const uploadPath = 'uploads/';
 if (!fs.existsSync(uploadPath)) {
     fs.mkdirSync(uploadPath, { recursive: true });
@@ -18,11 +17,9 @@ const storage = multer.diskStorage({
     }
 });
 
-// Eski middleware'ler (geriye uyumluluk için)
 const multiUpload = multer({ storage }).array('images', 20);
 const singleUpload = multer({ storage }).single('image');
 
-// Yeni gelişmiş middleware'leri import et
 import {
     singleImageUpload,
     multipleImageUpload,
@@ -32,12 +29,9 @@ import {
     handleUploadErrors
 } from '../middlewares/imageMiddleware.js';
 
-// Export hem eski hem yeni sistemi
 export {
-    // Eski sistem
     multiUpload,
     singleUpload,
-    // Yeni sistem (önerilen)
     singleImageUpload,
     multipleImageUpload,
     generateImageUrl,

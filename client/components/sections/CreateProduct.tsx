@@ -111,7 +111,6 @@ export const CreateProduct = ({ onClose, setIndex }: CreateProductProps) => {
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black/20 z-[999] p-4">
       <div className="max-w-4xl bg-white w-full max-h-[90vh] rounded-lg overflow-hidden shadow-2xl">
-        {/* Header */}
         <div className="flex items-center justify-between py-2 px-6 border-b border-gray-200 bg-gray-50">
           <h2 className="text-2xl font-bold text-gray-900">Yeni Ürün Ekle</h2>
           <button
@@ -122,13 +121,11 @@ export const CreateProduct = ({ onClose, setIndex }: CreateProductProps) => {
           </button>
         </div>
 
-        {/* Form Content */}
         <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
           <form
             onSubmit={handleSubmit(handleSubmitData)}
             className="p-6 space-y-8"
           >
-            {/* Basic Information */}
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Temel Bilgiler
@@ -192,7 +189,6 @@ export const CreateProduct = ({ onClose, setIndex }: CreateProductProps) => {
               </div>
             </div>
 
-            {/* Pricing & Inventory */}
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Fiyat ve Stok
@@ -254,7 +250,6 @@ export const CreateProduct = ({ onClose, setIndex }: CreateProductProps) => {
               </div>
             </div>
 
-            {/* Product Images */}
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Ürün Görselleri
@@ -285,7 +280,6 @@ export const CreateProduct = ({ onClose, setIndex }: CreateProductProps) => {
               </div>
             </div>
 
-            {/* Specifications */}
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Teknik Özellikler
@@ -312,10 +306,8 @@ export const CreateProduct = ({ onClose, setIndex }: CreateProductProps) => {
               </div>
             </div>
 
-            {/* Divider */}
             <div className="border-t border-gray-200"></div>
 
-            {/* Submit Buttons */}
             <div className="flex justify-end gap-3 pt-4">
               <button
                 type="button"

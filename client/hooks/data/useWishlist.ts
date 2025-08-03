@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 
 interface IAllWishlist {
     enabled: boolean;
-
 }
 
 const useAllWishlist = ({ enabled = false }: IAllWishlist) => {

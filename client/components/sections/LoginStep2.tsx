@@ -9,6 +9,7 @@ import { useMutation } from '@tanstack/react-query';
 import { authService } from '@/services/authService';
 import { RootState } from '@/stores/store';
 import { close } from '@/stores/slices/globalToggleSlice';
+import toast from 'react-hot-toast';
 
 type FormValues = {
   code: string[];
@@ -61,7 +62,7 @@ export function LoginStep2() {
       return response;
     },
     onSuccess: () => {
-      console.log('Kod yeniden gönderildi');
+      toast.success('Kod yeniden gönderildi');
     },
   });
 
@@ -94,7 +95,6 @@ export function LoginStep2() {
         </button>
       </div>
 
-      {/* Başlık */}
       <h2 className="text-2xl font-bold text-center mb-2 text-gray-800">
         Doğrulama Kodu
       </h2>

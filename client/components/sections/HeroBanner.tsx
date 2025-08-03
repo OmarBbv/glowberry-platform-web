@@ -19,7 +19,6 @@ const images2 = [
 export default function HeroBanner() {
   return (
     <section className="space-y-2">
-      {/* 1 hero */}
       <div className="h-10 px-2 md:px-0">
         <CustomSwiper
           images={images}
@@ -29,7 +28,6 @@ export default function HeroBanner() {
         />
       </div>
 
-      {/* 2 hero */}
       <div className="h-[168px] px-2 md:px-0">
         <CustomSwiper
           images={images2}
