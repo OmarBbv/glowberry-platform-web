@@ -82,9 +82,8 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`lg:px-10 px-2 space-y-1 p-2 lg:pb-3 lg:py-1 bg-gradient-to-r from-purple-custom via-violet-light-custom to-violet-custom ${
-        path ? 'sticky top-0 left-0' : 'block'
-      } w-full z-[999]`}
+      className={`lg:px-10 px-2 space-y-1 p-2 lg:pb-3 lg:py-1 bg-gradient-to-r from-purple-custom via-violet-light-custom to-violet-custom ${path ? 'sticky top-0 left-0' : 'block'
+        } w-full z-[999]`}
     >
       <div className="max-w-[1440px] mx-auto ">
         <TopBar location={location} />

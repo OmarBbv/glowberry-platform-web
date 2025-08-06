@@ -14,6 +14,7 @@ export default function ProductGrid() {
   const [selectProduct, setSelectProduct] = useState<IProduct | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
+
   const isWishlistEnabled = role === 'USER' && token !== undefined;
   const { ref, inView } = useInView();
 
